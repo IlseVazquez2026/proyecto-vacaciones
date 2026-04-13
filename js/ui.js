@@ -310,6 +310,45 @@ const UIManager = {
         finally { btn.disabled = false; btn.innerHTML = 'Guardar'; }
     },
 
+    async toggleUserSuspension(id) {
+        if (!AuthManager.checkPermission('admin')) return;
+        const users = StateManager.getUsers();
+        let user = users.find(u => u.id === id);
+        if (user) {
+            user.status = user.status === 'suspended' ? 'active' : 'suspended';
+            await StateManager.saveUser(user);
+            this.showToast(`Usuario ${user.status === 'suspended' ? 'suspendido' : 'activado'}`, 'info');
+            Visualizer.renderUserManagement();
+        }
+    },
+
+    async handleDeleteUser(id) {
+        if (!AuthManager.checkPermission('admin')) return;
+        if (confirm('¿Eliminar este acceso?')) {
+            await StateManager.deleteUser(id);
+            this.showToast('Usuario eliminado', 'success');
+            Visualizer.renderUserManagement();
+        }
+    },
+
+    async handleQuickDelete(id) {
+        if (!AuthManager.checkPermission('admin')) return;
+        if (confirm('¿Dar de baja a este colaborador? El histórico se conservará.')) {
+            await StateManager.deleteCollaborator(id);
+            this.showToast('Baja procesada correctamente', 'success');
+            this.refreshView('collaborators');
+            this.renderStats();
+        }
+    },
+
+    handleDownloadTemplate() {
+        const data = [
+            ["ID", "Nombre Completo", "Fecha Ingreso (AAAA-MM-DD)", "Area", "Estatus (active/inactive)", "Notas"],
+            ["00", "Juan Perez", "2023-01-15", "Ventas", "active", "Coordinador"]
+        ];
+        this.downloadExcel(data, 'plantilla_personal.xlsx', 'Plantilla');
+    },
+
     async handleFileUpload(file) {
         const reader = new FileReader();
         reader.onload = async (e) => {
