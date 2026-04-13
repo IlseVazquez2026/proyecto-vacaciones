@@ -1,0 +1,475 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestión de Colaboradores - PROYECTO VACACIONES</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar Navigation -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <div class="logo">
+                    <i class="fas fa-umbrella-beach"></i>
+                    <span></span>
+                </div>
+            </div>
+            <nav class="sidebar-menu">
+                <a href="#" class="menu-item" id="nav-dashboard">
+                    <i class="fas fa-edit"></i>
+                    <span>Registro</span>
+                </a>
+                <a href="#" class="menu-item" id="nav-collaborators">
+                    <i class="fas fa-user-friends"></i>
+                    <span>Colaboradores</span>
+                </a>
+                <a href="#" class="menu-item" id="nav-vacations">
+                    <i class="fas fa-calendar-alt"></i>
+                    <span>Calendario</span>
+                </a>
+                <a href="#" class="menu-item" id="nav-personnel">
+                    <i class="fas fa-chart-pie"></i>
+                    <span>Panel General</span>
+                </a>
+                <a href="#" class="menu-item" id="nav-history">
+                    <i class="fas fa-history"></i>
+                    <span>Histórico</span>
+                </a>
+                <div class="menu-divider"></div>
+                <a href="#" class="menu-item" id="nav-config">
+                    <i class="fas fa-cog"></i>
+                    <span>Configuración</span>
+                </a>
+            </nav>
+            <div class="sidebar-footer">
+                <div class="user-profile">
+                    <div class="avatar">AD</div>
+                    <div class="user-info">
+                        <p class="user-name">Administrador</p>
+                        <p class="user-role">RH Master</p>
+                    </div>
+                    <button id="btn-logout" class="btn-logout" title="Cerrar Sesión">
+                        <i class="fas fa-sign-out-alt"></i>
+                    </button>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Content Area -->
+        <main class="main-content">
+            <header class="top-bar">
+                <div class="header-breadcrumb" id="top-search-bar" style="visibility: hidden;">
+                    <!-- Placeholder to keep layout consistent if needed -->
+                </div>
+                <div class="top-bar-actions">
+                    <button class="btn btn-primary" id="btn-add-collaborator">
+                        <i class="fas fa-plus"></i> Nuevo Colaborador
+                    </button>
+                </div>
+            </header>
+
+            <div class="content-body" id="main-view">
+                <!-- 0. DASHBOARD -->
+                <section id="view-dashboard" class="app-view">
+                    <div class="view-header">
+                        <h1>Registro de Vacaciones</h1>
+                        <p>Gestión operativa y registro rápido de días.</p>
+                    </div>
+                    
+                    <div class="stats-grid dashboard-stats" style="grid-template-columns: 1fr 1fr;">
+                        <div class="stat-card">
+                            <div class="stat-icon blue"><i class="fas fa-users"></i></div>
+                            <div class="stat-data">
+                                <p class="stat-label">Personal Total</p>
+                                <h3 id="dash-total" class="stat-value">0</h3>
+                            </div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-icon orange"><i class="fas fa-plane-departure"></i></div>
+                            <div class="stat-data">
+                                <p class="stat-label">En Vacaciones</p>
+                                <h3 id="dash-on-leave" class="stat-value">0</h3>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="dashboard-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 30px; margin-top: 30px;">
+                        <div class="card" style="padding: 25px;">
+                            <h3 style="margin-top: 0; margin-bottom: 20px;"><i class="fas fa-calendar-plus" style="color:var(--primary-color);"></i> Nueva Solicitud</h3>
+                            <form id="quick-vacation-form">
+                                <div class="form-group" style="margin-bottom: 20px;">
+                                    <label>Colaborador</label>
+                                    <select id="vac-col-select" class="input-field" required>
+                                        <option value="">Selecciona...</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label>Selecciona los días:</label>
+                                    <div id="mini-calendar-nav" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px; font-size: 0.8rem;">
+                                        <button type="button" id="mini-cal-prev" class="btn-icon"><i class="fas fa-chevron-left"></i></button>
+                                        <span id="mini-cal-month-year">...</span>
+                                        <button type="button" id="mini-cal-next" class="btn-icon"><i class="fas fa-chevron-right"></i></button>
+                                    </div>
+                                    <div id="quick-vacation-calendar" class="mini-calendar"></div>
+                                    <p style="font-size: 0.75rem; color: var(--text-secondary); margin-top: 8px;">
+                                        <i class="fas fa-info-circle"></i> Los fines de semana no son descontables.
+                                    </p>
+                                </div>
+
+                                <div class="form-group">
+                                    <label>Días hábiles seleccionados: <strong id="selected-days-count" style="color: var(--primary-color);">0</strong></label>
+                                </div>
+
+                                <div class="form-group">
+                                    <label>Notas</label>
+                                    <textarea id="vac-notes" class="input-field" placeholder="Comentarios..." style="height: 60px;"></textarea>
+                                </div>
+
+                                <button type="submit" class="btn btn-primary btn-block admin-only">
+                                    <i class="fas fa-save"></i> Registrar Solicitud
+                                </button>
+                                <p class="guest-msg" style="display:none; color:var(--error-color); font-size: 0.8rem; margin-top:10px; text-align:center;">Solo administradores pueden registrar vacaciones.</p>
+                            </form>
+                        </div>
+
+                        <div class="card upcoming-card">
+                            <div class="card-header">
+                                <h3><i class="fas fa-clock"></i> Próximas Salidas</h3>
+                            </div>
+                            <div id="upcoming-list" class="upcoming-list">
+                                <!-- JS -->
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- 1. COLABORADORES -->
+                <section id="view-collaborators" class="app-view" style="display: none;">
+                    <div class="view-header">
+                        <h1>Administración de Personal</h1>
+                        <p>Gestiona el catálogo base del personal y controla el estatus de contratación.</p>
+                    </div>
+
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <div class="stat-icon purple">
+                                <i class="fas fa-users"></i>
+                            </div>
+                            <div class="stat-data">
+                                <p class="stat-label">Total Colaboradores</p>
+                                <h3 id="stat-total" class="stat-value">0</h3>
+                            </div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-icon green">
+                                <i class="fas fa-user-check"></i>
+                            </div>
+                            <div class="stat-data">
+                                <p class="stat-label">Activos</p>
+                                <h3 id="stat-active" class="stat-value">0</h3>
+                            </div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-icon orange">
+                                <i class="fas fa-user-clock"></i>
+                            </div>
+                            <div class="stat-data">
+                                <p class="stat-label">En Vacaciones</p>
+                                <h3 id="stat-on-leave" class="stat-value">0</h3>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="table-container card">
+                        <div class="table-filters">
+                            <div class="filter-group">
+                                <button class="filter-btn active" data-filter="all">Todos</button>
+                                <button class="filter-btn" data-filter="active">Activos</button>
+                                <button class="filter-btn" data-filter="inactive">Inactivos</button>
+                            </div>
+                        </div>
+                        <div class="table-responsive">
+                            <table class="data-table">
+                                <thead>
+                                    <tr>
+                                        <th>Nombre</th>
+                                        <th>Fecha Contratación</th>
+                                        <th>Estatus</th>
+                                        <th>Acciones</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="collaborators-body">
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- 2. CALENDARIO -->
+                <section id="view-vacations" class="app-view" style="display: none;">
+                    <div class="view-header">
+                        <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+                            <div>
+                                <h1>Calendario Anual</h1>
+                                <p>Consulta la programación mensual del equipo.</p>
+                            </div>
+                            <div class="calendar-nav-advanced">
+                                <select id="cal-month-select" class="form-control-sm"></select>
+                                <select id="cal-year-select" class="form-control-sm"></select>
+                                <div class="btn-group" style="margin-left: 10px;">
+                                    <button class="btn btn-secondary btn-sm" id="cal-prev"><i class="fas fa-chevron-left"></i></button>
+                                    <button class="btn btn-secondary btn-sm" id="cal-next"><i class="fas fa-chevron-right"></i></button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div id="calendar-container" class="card calendar-card">
+                    </div>
+                </section>
+
+                <!-- 3. HISTÓRICO -->
+                <section id="view-history" class="app-view" style="display: none;">
+                    <div class="view-header">
+                        <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+                            <div>
+                                <h1>Histórico Individual</h1>
+                                <p>Trazabilidad completa de solicitudes y días disfrutados.</p>
+                            </div>
+                            <div class="select-colaborador-container">
+                                <select id="history-col-select" class="form-control">
+                                    <option value="">Selecciona un colaborador...</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    <div id="history-content"></div>
+                </section>
+
+                <!-- 4. PANEL GENERAL -->
+                <section id="view-personnel" class="app-view" style="display: none;">
+                    <div class="view-header">
+                        <h1>Panel General</h1>
+                        <p>Control administrativo de saldos de todo el personal.</p>
+                    </div>
+                    <div class="filters-bar card" style="margin-bottom: 20px; padding: 15px;">
+                        <div class="form-grid" style="grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
+                            <div class="form-group">
+                                   <div class="filter-group">
+                        <label>Estatus</label>
+                        <select id="filter-panel-status" class="input-field">
+                            <option value="all">Todos</option>
+                            <option value="active">Activos</option>
+                            <option value="inactive">Inactivos</option>
+                        </select>
+                    </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="table-container card">
+                        <div class="table-responsive">
+                            <table class="data-table">
+                                <thead>
+                                    <tr>
+                                        <th>Colaborador</th>
+                                        <th>Estatus</th>
+                                        <th>Asignados</th>
+                                        <th>Usados</th>
+                                        <th>Saldo</th>
+                                        <th>Solicitudes</th>
+                                        <th>Acción</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="panel-general-body"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- 5. CONFIGURACIÓN -->
+                <section id="view-config" class="app-view" style="display: none;">
+                    <div class="view-header">
+                        <h1>Configuración</h1>
+                        <p>Gestión de usuarios y mantenimiento del sistema.</p>
+                    </div>
+                    <div class="card config-card">
+                        <div class="config-section">
+                            <h3><i class="fas fa-users-cog"></i> Gestión de Usuarios</h3>
+                            <p>Administra quién puede leer o modificar la información.</p>
+                            <div class="table-responsive" style="margin-top:15px;">
+                                <table class="data-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Nombre</th>
+                                            <th>Usuario</th>
+                                            <th>Rol</th>
+                                            <th>Acciones</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="user-management-body"></tbody>
+                                </table>
+                            </div>
+                            <button class="btn btn-secondary btn-sm admin-only" id="btn-add-user" style="margin-top:10px; width: 50%; max-width: 250px; display: block;">
+                                <i class="fas fa-user-plus"></i> Nuevo Usuario
+                            </button>
+                        </div>
+                        <div class="divider"></div>
+                        <div class="config-section">
+                            <h3><i class="fas fa-file-upload"></i> Datos maestros</h3>
+                            <div class="card" id="upload-personnel-area" style="text-align:center; padding: 40px; border: 2px dashed var(--border-color); cursor: pointer;">
+                            <i class="fas fa-file-excel" style="font-size: 2.5rem; color: #27ae60; margin-bottom: 15px;"></i>
+                            <h3 style="margin:0;">Subida Masiva de Personal</h3>
+                            <p style="font-size: 0.9rem; color: var(--text-secondary); margin-top: 10px;">Haz clic para seleccionar archivo Excel o CSV</p>
+                            <input type="file" id="historical-file-input" style="display:none;" accept=".xlsx, .xls, .csv">
+                            
+                            <div style="margin-top: 25px; border-top: 1px solid var(--border-color); padding-top: 20px; display: flex; justify-content: center; gap: 15px;">
+                                <button id="btn-trigger-upload" class="btn btn-secondary"><i class="fas fa-upload"></i> Subir Datos</button>
+                                <button id="btn-download-template" class="btn btn-primary" onclick="event.stopPropagation(); UIManager.handleDownloadTemplate()"><i class="fas fa-download"></i> Descargar Plantilla</button>
+                            </div>
+                        </div>
+                        </div>
+                        <div class="divider"></div>
+                        <div class="config-section">
+                            <div class="config-actions">
+                                <button class="btn btn-secondary btn-sm" id="btn-export-data"><i class="fas fa-download"></i> Exportar</button>
+                                <button class="btn btn-danger-outline btn-sm admin-only" id="btn-reset-data"><i class="fas fa-trash-alt"></i> Limpiar Todo</button>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+            </div>
+        </main>
+    </div>
+
+    <!-- Login Overlay -->
+    <div id="login-overlay" class="login-overlay active">
+        <div class="login-card">
+            <div class="login-header">
+                <i class="fas fa-umbrella-beach"></i>
+                <h2>VACACIONES CAPACITATE PARA EL EMPLEO</h2>
+                <p>Ingresa tus credenciales para continuar</p>
+            </div>
+            <form id="login-form">
+                <div class="form-group">
+                    <label>Usuario</label>
+                    <div class="input-with-icon">
+                        <i class="fas fa-user"></i>
+                        <input type="text" id="login-username" required placeholder="admin">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Contraseña</label>
+                    <div class="input-with-icon">
+                        <i class="fas fa-lock"></i>
+                        <input type="password" id="login-password" required placeholder="••••••••">
+                    </div>
+                </div>
+                <div id="login-error" class="login-error" style="display:none;"></div>
+                <button type="submit" class="btn btn-primary btn-block">
+                    Iniciar Sesión <i class="fas fa-arrow-right"></i>
+                </button>
+            </form>
+            <div class="login-footer">
+                <p>&copy; 2026 Admin Vacaciones - RH Engine</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modals -->
+    <div class="modal" id="collaborator-modal">
+        <div class="modal-content" style="max-width: 550px;">
+        <div class="modal-header">
+            <h2 id="modal-title">Nuevo Colaborador</h2>
+            <button class="close-modal">&times;</button>
+        </div>
+        <form id="collaborator-form">
+            <input type="hidden" id="col-old-id">
+            <div class="form-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                <div class="form-group">
+                    <label>ID / Clave</label>
+                    <input type="text" id="col-id" class="input-field" required>
+                </div>
+                <div class="form-group">
+                    <label>Nombre Completo</label>
+                    <input type="text" id="col-name" class="input-field" required>
+                </div>
+                <div class="form-group">
+                    <label>Fecha de Ingreso</label>
+                    <input type="date" id="col-hire-date" class="input-field" required>
+                </div>
+                <div class="form-group">
+                    <label>Estatus</label>
+                    <select id="col-status" class="input-field">
+                        <option value="active">Activo</option>
+                        <option value="inactive">Inactivo</option>
+                    </select>
+                </div>
+                <div class="form-group" style="grid-column: span 2;">
+                    <label>Notas / Observaciones</label>
+                    <textarea id="col-notes" class="input-field" style="height: 80px;"></textarea>
+                </div>
+            </div>
+            <div class="modal-footer" style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px;">
+                <button type="button" class="btn btn-secondary close-modal">Cancelar</button>
+                <button type="submit" class="btn btn-primary">Guardar Colaborador</button>
+            </div>
+        </form>
+    </div>
+    </div>
+
+    <div class="modal" id="user-modal">
+        <div class="modal-content" style="max-width: 550px;">
+        <div class="modal-header">
+            <h2 id="user-modal-title">Nuevo Usuario</h2>
+            <button class="close-modal">&times;</button>
+        </div>
+        <form id="user-form">
+            <input type="hidden" id="user-id">
+            <div class="form-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                <div class="form-group" style="grid-column: span 2;">
+                    <label>Nombre Mostrar</label>
+                    <input type="text" id="user-name" class="input-field" required>
+                </div>
+                <div class="form-group">
+                    <label>Usuario</label>
+                    <input type="text" id="user-username" class="input-field" required>
+                </div>
+                <div class="form-group">
+                    <label>Contraseña</label>
+                    <input type="password" id="user-password" class="input-field" required>
+                </div>
+                <div class="form-group" style="grid-column: span 2;">
+                    <label>Rol</label>
+                    <select id="user-role" class="input-field">
+                        <option value="guest">Invitado (Lectura)</option>
+                        <option value="admin">Administrador (Total)</option>
+                    </select>
+                </div>
+            </div>
+            <div class="modal-footer" style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px;">
+                <button type="button" class="btn btn-secondary close-modal">Cancelar</button>
+                <button type="submit" class="btn btn-primary">Guardar Usuario</button>
+            </div>
+        </form>
+    </div>
+    </div>
+
+    <div id="toast-container" class="toast-container"></div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="js/supabase-config.js"></script>
+    <script src="js/xlsx.js"></script>
+    <script src="js/state.js"></script>
+    <script src="js/engine.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="js/visualizer.js"></script>
+    <script src="js/ui.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>
