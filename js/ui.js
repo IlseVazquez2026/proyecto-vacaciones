@@ -19,8 +19,6 @@ const UIManager = {
     },
 
     setupAuthHandlers() {
-        // Formulario de login ya está en AuthManager
-        // Solo necesitamos que se inicie después de StateManager
         AuthManager.init();
     },
 
@@ -45,7 +43,6 @@ const UIManager = {
             }
         });
 
-        // Eventos de Colaboradores (Búsqueda global)
         const search = document.getElementById('global-search');
         if (search) {
             search.addEventListener('input', (e) => {
@@ -58,7 +55,6 @@ const UIManager = {
             });
         }
 
-        // Filtros de la tabla de colaboradores
         document.querySelectorAll('.filter-btn').forEach(btn => {
             btn.addEventListener('click', () => {
                 document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
@@ -67,12 +63,10 @@ const UIManager = {
             });
         });
 
-        // Modal de Colaboradores
         document.getElementById('btn-add-collaborator').onclick = () => {
             if (AuthManager.checkPermission('create')) this.showModal();
         };
 
-        // Modal de Usuarios
         const btnAddUser = document.getElementById('btn-add-user');
         if (btnAddUser) {
             btnAddUser.onclick = () => this.showUserModal();
@@ -88,13 +82,11 @@ const UIManager = {
         document.getElementById('collaborator-form').onsubmit = (e) => this.handleFormSubmit(e);
         document.getElementById('user-form').onsubmit = (e) => this.handleUserFormSubmit(e);
         
-        // Formulario de Vacaciones Rápidas (Dashboard)
         const quickVacForm = document.getElementById('quick-vacation-form');
         if (quickVacForm) {
             quickVacForm.onsubmit = (e) => this.handleVacationSubmit(e);
         }
 
-        // Eventos de Configuración
         const btnUpload = document.getElementById('btn-trigger-upload');
         const fileInput = document.getElementById('historical-file-input');
         const uploadArea = document.getElementById('upload-personnel-area');
@@ -105,7 +97,7 @@ const UIManager = {
             fileInput.onchange = async (e) => {
                 if (e.target.files.length > 0) {
                     await this.handleFileUpload(e.target.files[0]);
-                    e.target.value = ''; // Reset for next time
+                    e.target.value = ''; 
                 }
             };
         }
@@ -114,7 +106,7 @@ const UIManager = {
         if (btnReset) {
             btnReset.onclick = () => {
                 if (!AuthManager.checkPermission('admin')) return;
-                if (confirm('¿ESTÁS SEGURO? Esta acción borrará TODO el historial y colaboradores localmente.')) {
+                if (confirm('¿ESTÁS SEGURO?')) {
                     localStorage.clear();
                     location.reload();
                 }
@@ -124,33 +116,24 @@ const UIManager = {
         const btnExport = document.getElementById('btn-export-data');
         if (btnExport) {
             btnExport.onclick = () => {
-                if (AuthManager.checkPermission('admin')) {
-                    this.handleExportAllHistory();
-                }
+                if (AuthManager.checkPermission('admin')) this.handleExportAllHistory();
             };
         }
     },
 
     navigate(navId, params = null) {
-        // Actualizar UI del Sidebar
         document.querySelectorAll('.menu-item').forEach(i => i.classList.remove('active'));
         const activeNav = document.getElementById(navId);
         if (activeNav) activeNav.classList.add('active');
 
-        // Ocultar todas las vistas
         document.querySelectorAll('.app-view').forEach(v => v.style.display = 'none');
 
-        // Mostrar vista destino
         const viewId = navId.replace('nav-', 'view-');
         const viewEl = document.getElementById(viewId);
         if (viewEl) {
             viewEl.style.display = 'block';
             this.currentView = viewId.replace('view-', '');
-            
-            // Actualizar visibilidad de herramientas superiores
             this.updateTopbarVisibility(this.currentView);
-            
-            // Actualizar contenido según la vista
             this.refreshView(this.currentView, params);
         }
     },
@@ -158,28 +141,15 @@ const UIManager = {
     updateTopbarVisibility(view) {
         const topSearch = document.getElementById('top-search-bar');
         const btnAdd = document.getElementById('btn-add-collaborator');
-        
-        // El buscador ya fue removido/oculto del HTML, aseguramos visibilidad hidden
         if (topSearch) topSearch.style.visibility = 'hidden';
-        
-        // Botón nuevo solo en Colaboradores
-        if (btnAdd) {
-            btnAdd.style.display = (view === 'collaborators') ? 'flex' : 'none';
-        }
+        if (btnAdd) btnAdd.style.display = (view === 'collaborators') ? 'flex' : 'none';
     },
 
     refreshView(view, params) {
         switch(view) {
-            case 'dashboard':
-                Visualizer.renderDashboard();
-                break;
-            case 'collaborators':
-                this.renderCollaboratorsTable();
-                this.renderStats();
-                break;
-            case 'vacations':
-                Visualizer.renderCalendar();
-                break;
+            case 'dashboard': Visualizer.renderDashboard(); break;
+            case 'collaborators': this.renderCollaboratorsTable(); this.renderStats(); break;
+            case 'vacations': Visualizer.renderCalendar(); break;
             case 'history':
                 if (params) {
                     document.getElementById('history-col-select').value = params;
@@ -188,28 +158,20 @@ const UIManager = {
                 Visualizer.populateColSelect();
                 Visualizer.renderHistory();
                 break;
-            case 'personnel':
-                Visualizer.renderPersonnelPanel();
-                break;
-            case 'config':
-                Visualizer.renderUserManagement();
-                break;
+            case 'personnel': Visualizer.renderPersonnelPanel(); break;
+            case 'config': Visualizer.renderUserManagement(); break;
         }
     },
 
-    // --- LÓGICA DE COLABORADORES ---
     renderCollaboratorsTable(filter = 'all', search = '') {
         const body = document.getElementById('collaborators-body');
         if (!body) return;
-
         const collaborators = StateManager.getCollaborators(filter, search);
         body.innerHTML = '';
-
         if (collaborators.length === 0) {
-            body.innerHTML = '<tr><td colspan="4" style="text-align:center; padding:40px; color:var(--text-secondary);">No se encontraron colaboradores.</td></tr>';
+            body.innerHTML = '<tr><td colspan="4" style="text-align:center; padding:40px;">No hay colaboradores.</td></tr>';
             return;
         }
-
         collaborators.forEach(col => {
             const tr = document.createElement('tr');
             tr.innerHTML = `
@@ -217,119 +179,78 @@ const UIManager = {
                     <div style="font-weight: 600;">${col.name}</div>
                     <div style="font-size: 0.75rem; color: var(--text-secondary);">ID: ${col.id}</div>
                 </td>
-                <td>${this.formatDate(col.hireDate)}</td>
+                <td>${this.formatDate(col.hiredate)}</td>
                 <td><span class="status-pill pill-${col.status}">${col.status === 'active' ? 'Activo' : 'Inactivo'}</span></td>
                 <td>
                     <div style="display: flex; gap: 5px;">
-                        <button class="btn-icon edit-btn" title="Editar" onclick="if(AuthManager.checkPermission('edit')) UIManager.showModal('${col.id}');"><i class="fas fa-edit"></i></button>
-                        <button class="btn-icon delete-btn delete" title="Dar de baja" onclick="UIManager.handleQuickDelete('${col.id}')" ${col.status === 'inactive' ? 'style="display:none"' : ''}><i class="fas fa-user-minus"></i></button>
+                        <button class="btn-icon edit-btn" onclick="if(AuthManager.checkPermission('edit')) UIManager.showModal('${col.id}');"><i class="fas fa-edit"></i></button>
+                        <button class="btn-icon delete delete-btn" onclick="UIManager.handleQuickDelete('${col.id}')" ${col.status === 'inactive' ? 'style="display:none"' : ''}><i class="fas fa-user-minus"></i></button>
                     </div>
                 </td>
             `;
-
             body.appendChild(tr);
         });
     },
 
     renderStats() {
         const stats = StateManager.getStats();
-        // DASHBOARD / REGISTRO
         const dashTotal = document.getElementById('dash-total');
         const dashOnLeave = document.getElementById('dash-on-leave');
         if (dashTotal) dashTotal.textContent = stats.total;
         if (dashOnLeave) dashOnLeave.textContent = stats.onLeave;
-
-        // COLLABORATORS
         ['stat-total', 'stat-active', 'stat-on-leave'].forEach(id => {
             const el = document.getElementById(id);
             if (el) el.textContent = stats[id.replace('stat-', '')];
         });
     },
 
-    // --- OPERACIONES DE VACACIONES ---
     async handleVacationSubmit(e) {
         e.preventDefault();
         const btn = e.target.querySelector('button[type="submit"]');
         const originalText = btn.innerHTML;
-
         const data = {
-            collaboratorId: document.getElementById('vac-col-select').value,
+            collaboratorid: document.getElementById('vac-col-select').value,
             observations: document.getElementById('vac-notes').value,
             status: 'approved' 
         };
-
-        if (!data.collaboratorId) {
-            this.showToast('Selecciona un colaborador', 'error');
-            return;
+        if (!data.collaboratorid || Visualizer.selectedDates.length === 0) {
+            this.showToast('Completa los datos', 'error'); return;
         }
-
-        if (Visualizer.selectedDates.length === 0) {
-            this.showToast('Selecciona al menos un día en el calendario', 'error');
-            return;
-        }
-
         try {
-            btn.disabled = true;
-            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Guardando...';
-
+            btn.disabled = true; btn.innerHTML = '...';
             const days = Visualizer.selectedDates.map(date => ({
-                collaboratorId: data.collaboratorId,
-                originalDate: date,
-                actualDate: date,
+                collaboratorid: data.collaboratorid,
+                originaldate: date,
+                actualdate: date,
                 status: 'approved',
                 notes: ''
             }));
-
             await StateManager.saveVacationRequest({ 
                 ...data, 
-                daysCount: Visualizer.selectedDates.length,
-                startDate: Visualizer.selectedDates.sort()[0],
-                endDate: Visualizer.selectedDates.sort()[Visualizer.selectedDates.length - 1]
+                dayscount: Visualizer.selectedDates.length,
+                startdate: Visualizer.selectedDates.sort()[0],
+                enddate: Visualizer.selectedDates.sort()[Visualizer.selectedDates.length - 1]
             }, days);
-
-            this.showToast('Vacaciones registradas correctamente', 'success');
-            
+            this.showToast('Éxito', 'success');
             document.getElementById('quick-vacation-form').reset();
             Visualizer.selectedDates = [];
             Visualizer.renderMiniCalendar();
             this.refreshView('dashboard');
-
-        } catch (err) {
-            this.showToast('Error al guardar: ' + err.message, 'error');
-        } finally {
-            btn.disabled = false;
-            btn.innerHTML = originalText;
-        }
+        } catch (err) { this.showToast(err.message, 'error'); } 
+        finally { btn.disabled = false; btn.innerHTML = originalText; }
     },
 
-    async handleDeleteRequest(reqId) {
-        if (!AuthManager.checkPermission('delete')) return;
-        if (confirm('¿Eliminar esta solicitud completa? El histórico se recalculará.')) {
-            await StateManager.deleteVacationRequest(reqId);
-            this.showToast('Solicitud eliminada', 'success');
-            this.refreshView('history');
-        }
-    },
-
-    // --- MODALES ---
     showModal(id = null) {
         const modal = document.getElementById('collaborator-modal');
         const form = document.getElementById('collaborator-form');
-        if (form) form.reset();
-        
-        const colIdInput = document.getElementById('col-id');
-        const colOldIdInput = document.getElementById('col-old-id');
-        const modalTitle = document.getElementById('modal-title');
-        
-        if (colIdInput) colIdInput.value = id || '';
-        if (colOldIdInput) colOldIdInput.value = id || '';
-        if (modalTitle) modalTitle.textContent = id ? 'Editar Colaborador' : 'Nuevo Colaborador';
-
+        form.reset();
+        document.getElementById('col-id').value = id || '';
+        document.getElementById('col-old-id').value = id || '';
         if (id) {
             const col = StateManager.getCollaboratorById(id);
             if (col) {
                 document.getElementById('col-name').value = col.name;
-                document.getElementById('col-hire-date').value = col.hireDate;
+                document.getElementById('col-hire-date').value = col.hiredate;
                 document.getElementById('col-status').value = col.status;
                 document.getElementById('col-notes').value = col.notes || '';
             }
@@ -339,18 +260,10 @@ const UIManager = {
 
     showUserModal(userId = null) {
         const modal = document.getElementById('user-modal');
-        const form = document.getElementById('user-form');
-        if (form) form.reset();
-        
-        const userIdInput = document.getElementById('user-id');
-        const userModalTitle = document.getElementById('user-modal-title');
-        
-        if (userIdInput) userIdInput.value = userId || '';
-        if (userModalTitle) userModalTitle.textContent = userId ? 'Editar Usuario' : 'Nuevo Usuario';
-
+        document.getElementById('user-form').reset();
+        document.getElementById('user-id').value = userId || '';
         if (userId) {
-            const users = StateManager.getUsers();
-            const user = users.find(u => u.id === userId);
+            const user = StateManager.getUsers().find(u => u.id === userId);
             if (user) {
                 document.getElementById('user-name').value = user.name;
                 document.getElementById('user-username').value = user.username;
@@ -364,154 +277,44 @@ const UIManager = {
     async handleFormSubmit(e) {
         e.preventDefault();
         const btn = e.target.querySelector('button[type="submit"]');
-        const originalText = btn.innerHTML;
-
-        const oldIdInput = document.getElementById('col-old-id');
-        const oldId = oldIdInput ? oldIdInput.value : null;
-        
+        const oldId = document.getElementById('col-old-id').value;
         const colData = {
             id: document.getElementById('col-id').value,
             name: document.getElementById('col-name').value,
-            hireDate: document.getElementById('col-hire-date').value,
+            hiredate: document.getElementById('col-hire-date').value,
             status: document.getElementById('col-status').value,
             notes: document.getElementById('col-notes').value
         };
-
         try {
-            btn.disabled = true;
-            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Sincronizando...';
-
+            btn.disabled = true; btn.innerHTML = '...';
             await StateManager.saveCollaborator(colData, oldId);
-            this.showToast(colData.id ? 'Cambios guardados' : 'Colaborador creado', 'success');
+            this.showToast('Éxito', 'success');
             document.getElementById('collaborator-modal').classList.remove('active');
-            
             this.refreshView(this.currentView);
-            this.renderStats();
-            
-            if (this.currentView === 'history') {
-                Visualizer.populateColSelect();
-                if (oldId && Visualizer.selectedColId === oldId) {
-                    Visualizer.selectedColId = colData.id;
-                    Visualizer.renderHistory();
-                }
-            }
-        } catch (err) {
-            this.showToast(err.message, 'error');
-        } finally {
-            btn.disabled = false;
-            btn.innerHTML = originalText;
-        }
-    },
-
-    async handleUserFormSubmit(e) {
-        e.preventDefault();
-        const btn = e.target.querySelector('button[type="submit"]');
-        const originalText = btn.innerHTML;
-
-        const userId = document.getElementById('user-id').value;
-        const existingData = StateManager.getUsers().find(u => u.id === userId) || {};
-        const userData = {
-            id: userId,
-            name: document.getElementById('user-name').value,
-            username: document.getElementById('user-username').value,
-            password: document.getElementById('user-password').value,
-            role: document.getElementById('user-role').value,
-            status: existingData.status || 'active'
-        };
-
-        try {
-            btn.disabled = true;
-            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Guardando...';
-            await StateManager.saveUser(userData);
-            this.showToast('Usuario guardado', 'success');
-            document.getElementById('user-modal').classList.remove('active');
-            Visualizer.renderUserManagement();
-        } catch (err) {
-            this.showToast('Error: ' + err.message, 'error');
-        } finally {
-            btn.disabled = false;
-            btn.innerHTML = originalText;
-        }
-    },
-
-    async toggleUserSuspension(id) {
-        if (!AuthManager.checkPermission('admin')) return;
-        const users = StateManager.getUsers();
-        let user = users.find(u => u.id === id);
-        if (user) {
-            user.status = user.status === 'suspended' ? 'active' : 'suspended';
-            await StateManager.saveUser(user);
-            this.showToast(`Usuario ${user.status === 'suspended' ? 'suspendido' : 'activado'}`, 'info');
-            Visualizer.renderUserManagement();
-        }
-    },
-
-    async handleDeleteUser(id) {
-        if (!AuthManager.checkPermission('admin')) return;
-        
-        if (confirm('¿Eliminar este acceso?')) {
-            await StateManager.deleteUser(id);
-            this.showToast('Usuario eliminado', 'success');
-            Visualizer.renderUserManagement();
-        }
-    },
-
-    async handleQuickDelete(id) {
-        if (!AuthManager.checkPermission('admin')) return;
-
-        if (confirm('¿Dar de baja a este colaborador? El histórico se conservará.')) {
-            await StateManager.deleteCollaborator(id);
-            this.showToast('Baja procesada correctamente', 'success');
-            this.refreshView('collaborators');
-            this.renderStats();
-        }
-    },
-
-    handleDownloadTemplate() {
-        const data = [
-            ["ID", "Nombre Completo", "Fecha Ingreso (AAAA-MM-DD)", "Area", "Estatus (active/inactive)", "Notas"],
-            ["00", "Juan Perez", "2023-01-15", "Ventas", "active", "Coordinador/Pendiente de validar"]
-        ];
-        this.downloadExcel(data, 'plantilla_personal.xlsx', 'Plantilla');
+        } catch (err) { this.showToast(err.message, 'error'); } 
+        finally { btn.disabled = false; btn.innerHTML = 'Guardar'; }
     },
 
     async handleFileUpload(file) {
         const reader = new FileReader();
         reader.onload = async (e) => {
             try {
-                const data = new Uint8Array(e.target.result);
-                const workbook = XLSX.read(data, { type: 'array' });
-                const sheet = workbook.Sheets[workbook.SheetNames[0]];
-                const rows = XLSX.utils.sheet_to_json(sheet);
+                const workbook = XLSX.read(new Uint8Array(e.target.result), { type: 'array' });
+                const rows = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]]);
+                if (rows.length === 0) return;
 
-                if (rows.length === 0) {
-                    this.showToast('El archivo está vacío', 'error');
-                    return;
-                }
-
-                this.showToast(`Procesando ${rows.length} colaboradores...`, 'info');
-
-                // Obtener ID correlativo base
                 const currentCols = StateManager.getCollaborators('all');
                 let nextIdNum = 0;
-                
-                // Intentar encontrar el numero mas alto si los IDs son numericos
                 const numericIds = currentCols.map(c => parseInt(c.id)).filter(n => !isNaN(n));
-                if (numericIds.length > 0) {
-                    nextIdNum = Math.max(...numericIds) + 1;
-                }
+                if (numericIds.length > 0) nextIdNum = Math.max(...numericIds) + 1;
 
                 const collaboratorsToSave = rows.map(row => {
                     let id = row['ID'] || row['id'] || row['Clave'] || '';
-                    if (!id) {
-                        id = String(nextIdNum).padStart(2, '0');
-                        nextIdNum++;
-                    }
-
+                    if (!id) { id = String(nextIdNum).padStart(2, '0'); nextIdNum++; }
                     return {
                         id: String(id),
                         name: row['Nombre Completo'] || row['nombre'] || 'Sin Nombre',
-                        hireDate: this.normalizeExcelDate(row['Fecha Ingreso (AAAA-MM-DD)'] || row['fecha']),
+                        hiredate: this.normalizeExcelDate(row['Fecha Ingreso (AAAA-MM-DD)'] || row['fecha']),
                         area: row['Area'] || row['area'] || '',
                         status: (row['Estatus (active/inactive)'] || row['estatus'] || 'active').toLowerCase(),
                         notes: row['Notas'] || row['notas'] || ''
@@ -519,146 +322,55 @@ const UIManager = {
                 });
 
                 await StateManager.bulkSaveCollaborators(collaboratorsToSave);
-                this.showToast(`Carga masiva completada: ${collaboratorsToSave.length} registros`, 'success');
+                this.showToast('Carga completada', 'success');
                 this.refreshView(this.currentView);
-                this.renderStats();
-
-            } catch (err) {
-                console.error(err);
-                this.showToast('Error al procesar el archivo Excel: ' + err.message, 'error');
-            }
+            } catch (err) { this.showToast(err.message, 'error'); }
         };
         reader.readAsArrayBuffer(file);
     },
 
     normalizeExcelDate(val) {
         if (!val) return new Date().toISOString().split('T')[0];
-        // Si ya es string AAAA-MM-DD
         if (typeof val === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(val)) return val;
-        
-        // Si es numero de Excel (serial)
         if (typeof val === 'number') {
             const date = new Date(Math.round((val - 25569) * 86400 * 1000));
             return date.toISOString().split('T')[0];
         }
-
-        // Caso string DD/MM/AAAA
-        if (typeof val === 'string' && val.includes('/')) {
-            const parts = val.split('/');
-            if (parts.length === 3) {
-                // Asumimos DD/MM/AAAA o MM/DD/AAAA. Intentamos normalizar.
-                const d = new Date(val);
-                if (!isNaN(d.getTime())) return d.toISOString().split('T')[0];
-            }
-        }
-
-        return String(val);
+        const d = new Date(val);
+        return !isNaN(d.getTime()) ? d.toISOString().split('T')[0] : String(val);
     },
 
     handleExportAllHistory() {
-        // Exportación detallada: fila por cada día de vacación
-        const days = StateManager.data.vacationDays || [];
-        const data = [
-            ["ID Empleado", "Nombre", "Fecha de Vacación", "Estatus", "Notas"]
-        ];
-
+        const days = StateManager.data.vacationdays || [];
+        const data = [["ID Empleado", "Nombre", "Fecha", "Estatus", "Notas"]];
         days.forEach(d => {
-            const col = StateManager.getCollaboratorById(d.collaboratorId);
-            if (col) {
-                data.push([
-                    col.id,
-                    col.name,
-                    d.actualDate,
-                    d.status,
-                    d.notes || ''
-                ]);
-            }
+            const col = StateManager.getCollaboratorById(d.collaboratorid);
+            if (col) data.push([col.id, col.name, d.actualdate, d.status, d.notes || '']);
         });
-
-        this.downloadExcel(data, 'historico_completo_vacaciones.xlsx', 'Historico');
+        this.downloadExcel(data, 'historico.xlsx');
     },
 
-    downloadExcel(dataArray, filename, sheetName = "Datos") {
-        try {
-            if (typeof XLSX !== 'undefined') {
-                const ws = XLSX.utils.aoa_to_sheet(dataArray);
-                const wb = XLSX.utils.book_new();
-                XLSX.utils.book_append_sheet(wb, ws, sheetName);
-                XLSX.writeFile(wb, filename);
-                this.showToast('Archivo Excel descargado', 'success');
-                return;
-            }
-        } catch(e) {
-            console.error('Error usando XLSX, aplicando alternativa', e);
-        }
-        
-        // Alternativa CSV garantizada sin Blobs (para evitar UUIDs internos)
-        let csvContent = "\uFEFF";
-        dataArray.forEach(row => {
-            let csvRow = row.map(item => `"${String(item || '').replace(/"/g, '""')}"`).join(",");
-            csvContent += csvRow + "\n";
-        });
-        
-        const uri = 'data:text/csv;charset=utf-8,' + encodeURIComponent(csvContent);
-        const link = document.createElement("a");
-        link.setAttribute("href", uri);
-        link.setAttribute("download", filename.replace('.xlsx', '.csv'));
-        link.style.visibility = 'hidden';
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        
-        this.showToast('Descarga iniciada de forma nativa', 'success');
-    },
-
-    downloadExcelHTML(html, filename) {
-        const fullHtml = `
-            <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
-            <head><meta charset="UTF-8"></head>
-            <body>${html}</body>
-            </html>
-        `;
-        const blob = new Blob([fullHtml], { type: 'application/vnd.ms-excel' });
-        const link = document.createElement("a");
-        const url = URL.createObjectURL(blob);
-        link.setAttribute("href", url);
-        link.setAttribute("download", filename);
-        link.style.visibility = 'hidden';
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        this.showToast('Archivo Excel descargado', 'success');
+    downloadExcel(dataArray, filename) {
+        const ws = XLSX.utils.aoa_to_sheet(dataArray);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, "Datos");
+        XLSX.writeFile(wb, filename);
     },
 
     formatDate(dateStr) {
         if (!dateStr) return 'N/A';
-        const [year, month, day] = dateStr.split('-');
-        return `${day}/${month}/${year}`;
+        const parts = dateStr.split('-');
+        return parts.length === 3 ? `${parts[2]}/${parts[1]}/${parts[0]}` : dateStr;
     },
 
     showToast(message, type = 'success') {
         const container = document.getElementById('toast-container');
-        if (!container) return;
         const toast = document.createElement('div');
         toast.className = `toast ${type}`;
-        
-        let icon = 'fa-check-circle';
-        if (type === 'error') icon = 'fa-exclamation-circle';
-        if (type === 'info') icon = 'fa-info-circle';
-
-        toast.innerHTML = `<i class="fas ${icon}"></i><span>${message}</span>`;
+        toast.innerHTML = `<span>${message}</span>`;
         container.appendChild(toast);
-        
-        setTimeout(() => {
-            toast.style.opacity = '1';
-            toast.style.transform = 'translateY(0)';
-        }, 10);
-
-        setTimeout(() => {
-            toast.style.opacity = '0';
-            toast.style.transform = 'translateY(-20px)';
-            setTimeout(() => toast.remove(), 300);
-        }, 3500);
+        setTimeout(() => toast.classList.add('visible'), 10);
+        setTimeout(() => { toast.classList.remove('visible'); setTimeout(() => toast.remove(), 300); }, 3000);
     }
 };
 

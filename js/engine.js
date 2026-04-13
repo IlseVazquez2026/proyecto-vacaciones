@@ -1,7 +1,7 @@
 /**
  * engine.js - Agente de Control de Vacaciones
  * Encargado de la lógica de saldos, reglas de antigüedad y registro base.
- * Consume y gestiona los datos en StateManager (vacationRequests y vacationDays).
+ * Consume y gestiona los datos en StateManager (vacationrequests y vacationdays).
  */
 
 const VacationManager = {
@@ -15,13 +15,13 @@ const VacationManager = {
         const col = StateManager.getCollaboratorById(colId);
         if (!col) return [];
         
-        const hire = new Date(col.hireDate);
+        const hire = new Date(col.hiredate);
         let maxDate = new Date(); // Target cutoff date
         
         // Revisar si hay vacaciones solicitadas a futuro para generar los periodos
         const allDays = StateManager.getVacationDays(colId);
         allDays.forEach(d => {
-            const dDate = new Date(d.actualDate);
+            const dDate = new Date(d.actualdate);
             if (dDate > maxDate) maxDate = dDate;
         });
 
@@ -34,7 +34,6 @@ const VacationManager = {
             anniversary.setFullYear(hire.getFullYear() + yearNum);
             
             // Si el inicio del periodo ya superó la fecha máxima de las vacaciones agendadas, dejamos de generar periodos.
-            // Para asegurar que maxDate caiga dentro de un periodo generado, comparamos startPeriod.
             const startPeriod = new Date(hire);
             startPeriod.setFullYear(hire.getFullYear() + yearNum - 1);
 
@@ -66,14 +65,12 @@ const VacationManager = {
             });
             
             yearNum++;
-            
-            // Safety break para evitar bucles infinitos por error en fechas
             if (yearNum > 50) break;
         }
         
         // Asegurar que si el empleado tiene menos de 1 año y no ha pedido adelantos, al menos se muestre su primer periodo para uso futuro
         if (periods.length === 0) {
-            const law = new Date(col.hireDate) >= new Date('2023-01-01') ? 'post2023' : 'pre2023';
+            const law = new Date(col.hiredate) >= new Date('2023-01-01') ? 'post2023' : 'pre2023';
             let days = rules[law][0].days;
             const anniversary = new Date(hire);
             anniversary.setFullYear(hire.getFullYear() + 1);
@@ -94,12 +91,12 @@ const VacationManager = {
         const allDays = StateManager.getVacationDays(colId);
         const activeDays = allDays.filter(d => 
             (d.status === 'approved' || d.status === 'programmed')
-        ).sort((a, b) => new Date(a.actualDate) - new Date(b.actualDate)); 
+        ).sort((a, b) => new Date(a.actualdate) - new Date(b.actualdate)); 
 
-        const totalUsed = activeDays.filter(d => this.isBusinessDay(d.actualDate)).length;
+        const totalUsed = activeDays.filter(d => this.isBusinessDay(d.actualdate)).length;
 
         // Distribución por VENTANA CRONOLÓGICA
-        const hireDateObj = new Date(col.hireDate);
+        const hireDateObj = new Date(col.hiredate);
         
         const periodsWithConsumption = periods.map((p, index) => {
             const startDate = new Date(hireDateObj);
@@ -109,11 +106,11 @@ const VacationManager = {
             endDate.setFullYear(hireDateObj.getFullYear() + p.year);
             
             const periodDays = activeDays.filter(day => {
-                const dDate = new Date(day.actualDate);
+                const dDate = new Date(day.actualdate);
                 return dDate >= startDate && dDate < endDate;
             }).map(day => ({
                 ...day,
-                isBusinessDay: this.isBusinessDay(day.actualDate)
+                isBusinessDay: this.isBusinessDay(day.actualdate)
             }));
 
             const usedInPeriod = periodDays.filter(d => d.isBusinessDay).length;
@@ -127,11 +124,11 @@ const VacationManager = {
         });
 
         const requests = StateManager.getVacationRequests(colId).map(req => {
-            const reqDays = allDays.filter(d => d.requestId === req.id);
+            const reqDays = allDays.filter(d => d.requestid === req.id);
             return {
                 ...req,
                 days: reqDays,
-                businessDaysCount: reqDays.filter(d => this.isBusinessDay(d.actualDate)).length
+                businessDaysCount: reqDays.filter(d => this.isBusinessDay(d.actualdate)).length
             };
         });
 
@@ -140,7 +137,7 @@ const VacationManager = {
             used: totalUsed,
             balance: totalAssigned - totalUsed,
             periods: periodsWithConsumption,
-            requests: requests.sort((a, b) => new Date(b.registrationDate) - new Date(a.registrationDate))
+            requests: requests.sort((a, b) => new Date(b.registrationdate) - new Date(a.registrationdate))
         };
     },
 
@@ -155,22 +152,22 @@ const VacationManager = {
         const startDate = new Date(year, month, 1);
         const endDate = new Date(year, month + 1, 0);
         
-        const days = StateManager.data.vacationDays || [];
+        const days = StateManager.data.vacationdays || [];
         const events = [];
 
         days.forEach(d => {
-            const actualDate = new Date(d.actualDate);
+            const actualDate = new Date(d.actualdate);
             if (actualDate >= startDate && actualDate <= endDate) {
                 if (d.status === 'cancelled') return;
 
-                const col = StateManager.getCollaboratorById(d.collaboratorId);
+                const col = StateManager.getCollaboratorById(d.collaboratorid);
                 events.push({
                     dayId: d.id,
-                    colId: d.collaboratorId,
+                    colId: d.collaboratorid,
                     colName: col ? col.name : 'Desconocido',
-                    date: d.actualDate,
+                    date: d.actualdate,
                     status: d.status,
-                    isWeekend: !this.isBusinessDay(d.actualDate)
+                    isWeekend: !this.isBusinessDay(d.actualdate)
                 });
             }
         });

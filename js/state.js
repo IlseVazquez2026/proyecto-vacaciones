@@ -6,9 +6,9 @@ const StateManager = {
     data: {
         collaborators: [],
         users: [],
-        vacationRequests: [],
-        vacationDays: [],
-        vacationRules: {
+        vacationrequests: [],
+        vacationdays: [],
+        vacationrules: {
             pre2023: [
                 { years: 1, days: 6 }, { years: 2, days: 8 }, { years: 3, days: 10 }, { years: 4, days: 12 }, { years: 5, days: 14 },
                 { years: 10, days: 16 }, { years: 15, days: 18 }, { years: 20, days: 20 }, { years: 25, days: 22 }, { years: 30, days: 24 }
@@ -29,8 +29,8 @@ const StateManager = {
             const [
                 { data: collaborators },
                 { data: users },
-                { data: vacationRequests },
-                { data: vacationDays }
+                { data: vacationrequests },
+                { data: vacationdays }
             ] = await Promise.all([
                 supabase.from('collaborators').select('*'),
                 supabase.from('users').select('*'),
@@ -40,8 +40,8 @@ const StateManager = {
 
             this.data.collaborators = collaborators || [];
             this.data.users = users || [];
-            this.data.vacationRequests = vacationRequests || [];
-            this.data.vacationDays = vacationDays || [];
+            this.data.vacationrequests = vacationrequests || [];
+            this.data.vacationdays = vacationdays || [];
 
             // Restaurar sesión de usuario (si existe localmente)
             const savedUser = localStorage.getItem('vacaciones_user_session');
@@ -118,7 +118,7 @@ const StateManager = {
 
     async saveCollaborator(collaborator, oldId = null) {
         const now = new Date().toISOString();
-        const payload = { ...collaborator, lastUpdate: now };
+        const payload = { ...collaborator, lastupdate: now };
         
         if (oldId && oldId !== collaborator.id) {
             await supabase.from('collaborators').delete().eq('id', oldId);
@@ -133,7 +133,7 @@ const StateManager = {
 
     async bulkSaveCollaborators(list) {
         const now = new Date().toISOString();
-        const payloads = list.map(c => ({ ...c, lastUpdate: now }));
+        const payloads = list.map(c => ({ ...c, lastupdate: now }));
         
         const { error } = await supabase.from('collaborators').upsert(payloads);
         if (error) throw error;
@@ -147,7 +147,7 @@ const StateManager = {
         if (col) {
             const { error } = await supabase.from('collaborators').update({
                 status: 'inactive',
-                lastUpdate: new Date().toISOString()
+                lastupdate: new Date().toISOString()
             }).eq('id', id);
             if (error) throw error;
             await this.init();
@@ -157,8 +157,8 @@ const StateManager = {
     getStats() {
         const all = this.data.collaborators;
         const today = new Date().toISOString().split('T')[0];
-        const onLeaveCount = (this.data.vacationDays || []).filter(day => 
-            day.actualDate === today && (day.status === 'approved' || day.status === 'programmed')
+        const onLeaveCount = (this.data.vacationdays || []).filter(day => 
+            day.actualdate === today && (day.status === 'approved' || day.status === 'programmed')
         ).length;
 
         return {
@@ -171,24 +171,24 @@ const StateManager = {
 
     // --- VACATION METHODS ---
     getVacationRequests(collaboratorId) {
-        if (!collaboratorId) return this.data.vacationRequests;
-        return this.data.vacationRequests.filter(r => r.collaboratorId === collaboratorId);
+        if (!collaboratorId) return this.data.vacationrequests;
+        return this.data.vacationrequests.filter(r => r.collaboratorid === collaboratorId);
     },
 
     getVacationDays(collaboratorId, requestId = null) {
-        let days = this.data.vacationDays;
-        if (collaboratorId) days = days.filter(d => d.collaboratorId === collaboratorId);
-        if (requestId) days = days.filter(d => d.requestId === requestId);
+        let days = this.data.vacationdays;
+        if (collaboratorId) days = days.filter(d => d.collaboratorid === collaboratorId);
+        if (requestId) days = days.filter(d => d.requestid === requestId);
         return days;
     },
 
     async saveVacationRequest(request, days) {
-        const reqId = request.id || 'req-' + Date.now();
+        const reqid = request.id || 'req-' + Date.now();
         const now = new Date().toISOString();
 
         // 1. Guardar Cabecera
         const { error: reqErr } = await supabase.from('vacation_requests').upsert({
-            ...request, id: reqId, lastUpdate: now
+            ...request, id: reqid, lastupdate: now
         });
         if (reqErr) throw reqErr;
 
@@ -196,31 +196,31 @@ const StateManager = {
         const daysPayload = days.map(d => ({
             ...d, 
             id: d.id || `d-${Math.random().toString(36).substr(2, 9)}`,
-            requestId: reqId,
-            lastUpdate: now
+            requestid: reqid,
+            lastupdate: now
         }));
 
         const { error: daysErr } = await supabase.from('vacation_days').upsert(daysPayload);
         if (daysErr) throw daysErr;
 
         await this.init();
-        return reqId;
+        return reqid;
     },
 
     async updateVacationDay(dayId, updates) {
         const { error } = await supabase.from('vacation_days')
-            .update({ ...updates, lastUpdate: new Date().toISOString() })
+            .update({ ...updates, lastupdate: new Date().toISOString() })
             .eq('id', dayId);
         if (error) throw error;
         await this.init();
     },
 
-    async deleteVacationRequest(reqId) {
-        await supabase.from('vacation_requests').delete().eq('id', reqId);
+    async deleteVacationRequest(reqid) {
+        await supabase.from('vacation_requests').delete().eq('id', reqid);
         await this.init();
     },
 
     getVacationRules() {
-        return this.data.vacationRules;
+        return this.data.vacationrules;
     }
 };

@@ -3,7 +3,7 @@ const Visualizer = {
     currentMonth: new Date().getMonth(),
     miniYear: new Date().getFullYear(),
     miniMonth: new Date().getMonth(),
-    selectedDates: [], // Para registro de vacaciones
+    selectedDates: [], 
     selectedColId: null,
 
     init() {
@@ -100,9 +100,7 @@ const Visualizer = {
     renderDashboard() {
         const stats = StateManager.getStats();
         const allCollaborators = StateManager.getCollaborators('all');
-        const summary = VacationManager.getAllPersonnelSummary();
         
-        // Solo KPIs de Personal Total y En Vacaciones
         document.getElementById('dash-total').textContent = stats.total;
         document.getElementById('dash-on-leave').textContent = stats.onLeave;
 
@@ -133,7 +131,6 @@ const Visualizer = {
             </div>
         `;
 
-        // Huecos mes anterior
         for (let i = 0; i < firstDay; i++) {
             html += `<div class="mini-day other-month"></div>`;
         }
@@ -167,21 +164,22 @@ const Visualizer = {
     },
 
     updateSelectedCount() {
-        document.getElementById('selected-days-count').textContent = this.selectedDates.length;
+        const count = document.getElementById('selected-days-count');
+        if (count) count.textContent = this.selectedDates.length;
     },
 
     renderUpcomingLeaves() {
         const container = document.getElementById('upcoming-list');
-        const days = StateManager.data.vacationDays || [];
+        const days = StateManager.data.vacationdays || [];
         const today = new Date();
         today.setHours(0,0,0,0);
 
         const futureDays = days.filter(d => {
-            const date = new Date(d.actualDate);
+            const date = new Date(d.actualdate);
             return date >= today && (d.status === 'approved' || d.status === 'programmed');
-        }).sort((a,b) => new Date(a.actualDate) - new Date(b.actualDate));
+        }).sort((a,b) => new Date(a.actualdate) - new Date(b.actualdate));
 
-        const uniqueRequests = [...new Set(futureDays.map(d => d.requestId))].slice(0, 5);
+        const uniqueRequests = [...new Set(futureDays.map(d => d.requestid))].slice(0, 5);
 
         if (uniqueRequests.length === 0) {
             container.innerHTML = '<p style="text-align:center; padding:20px; opacity:0.5;">No hay salidas próximas.</p>';
@@ -189,10 +187,10 @@ const Visualizer = {
         }
 
         container.innerHTML = uniqueRequests.map(reqId => {
-            const req = StateManager.data.vacationRequests.find(r => r.id === reqId);
-            const col = StateManager.getCollaboratorById(req.collaboratorId);
-            const firstDay = futureDays.find(d => d.requestId === reqId);
-            const startDate = new Date(firstDay.actualDate);
+            const req = StateManager.data.vacationrequests.find(r => r.id === reqId);
+            const col = StateManager.getCollaboratorById(req.collaboratorid);
+            const firstDay = futureDays.find(d => d.requestid === reqId);
+            const startDate = new Date(firstDay.actualdate);
             
             return `
                 <div class="upcoming-item">
@@ -202,14 +200,13 @@ const Visualizer = {
                     </div>
                     <div class="upcoming-info">
                         <div style="font-weight:600;">${col ? col.name : 'Desconocido'}</div>
-                        <div style="font-size:0.75rem; color:var(--text-secondary);">${req.daysCount} días hábiles</div>
+                        <div style="font-size:0.75rem; color:var(--text-secondary);">${req.dayscount} días hábiles</div>
                     </div>
                 </div>
             `;
         }).join('');
     },
 
-    // --- VISTA 1: CALENDARIO MENSUAL ---
     renderCalendar() {
         const container = document.getElementById('calendar-container');
         if (!container) return;
@@ -230,8 +227,6 @@ const Visualizer = {
 
         const events = VacationManager.getEventsForMonth(this.currentYear, this.currentMonth);
         
-        // Setup Map de colores de alta distincion matemática (Ángulo Dorado)
-        // Garantiza que empleados consecutivos reciban colores en zonas completamente separadas del espectro.
         const allCols = StateManager.getCollaborators('all').sort((a, b) => String(a.id).localeCompare(String(b.id)));
         const colColorMap = {};
         allCols.forEach((col, index) => {
@@ -260,7 +255,6 @@ const Visualizer = {
                                     for(let i=0; i<str.length; i++) hash = str.charCodeAt(i) + ((hash << 5) - hash);
                                     hue = Math.abs(hash) % 360;
                                 }
-                                // Colores más vibrantes: saturación 70%, luminosidad 80% (pastel pero visible)
                                 inlineStyle = `background-color: hsl(${hue}, 75%, 85%) !important; color: #1a1a1a !important; font-weight: 600 !important; border-left: 4px solid hsl(${hue}, 80%, 40%) !important; box-shadow: 1px 1px 2px rgba(0,0,0,0.1) !important;`;
                             }
                             return `
@@ -278,7 +272,6 @@ const Visualizer = {
         container.innerHTML = html;
     },
 
-    // --- VISTA 2: HISTÓRICO ---
     populateColSelect() {
         const select = document.getElementById('history-col-select');
         if (!select) return;
@@ -380,7 +373,7 @@ const Visualizer = {
                                     ${p.daysList.map(d => `
                                         <tr style="${!d.isBusinessDay ? 'opacity: 0.6; background-color: #fcfcfc;' : ''}">
                                             <td>
-                                                <strong style="${!d.isBusinessDay ? 'color: var(--text-secondary);' : ''}">${new Date(d.actualDate + 'T12:00:00').toLocaleDateString()}</strong>
+                                                <strong style="${!d.isBusinessDay ? 'color: var(--text-secondary);' : ''}">${new Date(d.actualdate + 'T12:00:00').toLocaleDateString()}</strong>
                                                 ${!d.isBusinessDay ? '<span style="display:block; font-size: 0.65rem; color: #999; font-weight: normal;">(Día no laborable)</span>' : ''}
                                                 <div class="admin-only" style="margin-top:4px;">
                                                     <select class="status-select input-field" style="padding:2px; font-size:0.7rem; height:auto" onchange="Visualizer.updateDayStatus('${d.id}', this.value)">
@@ -422,7 +415,6 @@ const Visualizer = {
         try {
             await StateManager.updateVacationDay(dayId, { status });
             UIManager.showToast('Estatus actualizado', 'success');
-            // No necesitamos refrescar todo si solo cambiamos cache pero mejor prevenir
             this.renderHistory();
             this.renderCalendar();
         } catch (err) {
@@ -442,7 +434,6 @@ const Visualizer = {
     async deleteSingleDay(dayId) {
         if (confirm('¿Deseas eliminar este día de las vacaciones? El saldo se recalculará.')) {
             try {
-                // Nota: Podríamos simplemente cambiar el estatus a 'cancelled'
                 await StateManager.updateVacationDay(dayId, { status: 'cancelled' });
                 this.renderHistory();
                 this.renderCalendar();
@@ -453,7 +444,6 @@ const Visualizer = {
         }
     },
 
-    // --- VISTA 3: PANEL GENERAL ---
     renderPersonnelPanel() {
         const body = document.getElementById('panel-general-body');
         if (!body) return;
@@ -503,7 +493,6 @@ const Visualizer = {
         `).join('');
     },
 
-    // --- VISTA 4: CONFIGURACIÓN (USUARIOS) ---
     renderUserManagement() {
         const body = document.getElementById('user-management-body');
         if (!body) return;
