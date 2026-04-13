@@ -113,6 +113,21 @@ const UIManager = {
             };
         }
 
+        const btnHistoryUpload = document.getElementById('btn-trigger-history-upload');
+        const historyFileInput = document.getElementById('history-file-input');
+        const historyUploadArea = document.getElementById('upload-history-area');
+
+        if (btnHistoryUpload && historyFileInput) {
+            btnHistoryUpload.onclick = () => { if (AuthManager.checkPermission('admin')) historyFileInput.click(); };
+            historyUploadArea.onclick = () => { if (AuthManager.checkPermission('admin')) historyFileInput.click(); };
+            historyFileInput.onchange = async (e) => {
+                if (e.target.files.length > 0) {
+                    await this.handleHistoryFileUpload(e.target.files[0]);
+                    e.target.value = ''; 
+                }
+            };
+        }
+
         const btnExport = document.getElementById('btn-export-data');
         if (btnExport) {
             btnExport.onclick = () => {
@@ -338,6 +353,87 @@ const UIManager = {
         }
         const d = new Date(val);
         return !isNaN(d.getTime()) ? d.toISOString().split('T')[0] : String(val);
+    },
+
+    handleDownloadHistoryTemplate() {
+        const data = [
+            ["ID Empleado", "Fecha Inicio (AAAA-MM-DD)", "Fecha Fin (AAAA-MM-DD)", "Estatus (approved/cancelled)", "Notas"],
+            ["00", "2023-04-10", "2023-04-15", "approved", "Vacaciones de Semana Santa"]
+        ];
+        this.downloadExcel(data, 'plantilla_historial_vacaciones.xlsx', 'Historial');
+    },
+
+    async handleHistoryFileUpload(file) {
+        const reader = new FileReader();
+        reader.onload = async (e) => {
+            try {
+                const workbook = XLSX.read(new Uint8Array(e.target.result), { type: 'array' });
+                const rows = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]]);
+                if (rows.length === 0) return;
+
+                this.showToast(`Procesando historial de ${rows.length} periodos...`, 'info');
+
+                let count = 0;
+                for (const row of rows) {
+                    const colid = String(row['ID Empleado'] || row['id'] || '');
+                    const startRaw = row['Fecha Inicio (AAAA-MM-DD)'] || row['desde'];
+                    const endRaw = row['Fecha Fin (AAAA-MM-DD)'] || row['hasta'];
+                    const status = (row['Estatus (approved/cancelled)'] || row['estatus'] || 'approved').toLowerCase();
+                    const notes = row['Notas'] || row['notas'] || '';
+
+                    if (!colid || !startRaw || !endRaw) continue;
+
+                    const startdate = this.normalizeExcelDate(startRaw);
+                    const enddate = this.normalizeExcelDate(endRaw);
+
+                    // Generar lista de días hábiles
+                    const daysInRange = this.generateDaysList(startdate, enddate);
+                    if (daysInRange.length === 0) continue;
+
+                    const request = {
+                        collaboratorid: colid,
+                        startdate: startdate,
+                        enddate: enddate,
+                        dayscount: daysInRange.length,
+                        status: status,
+                        observations: notes
+                    };
+
+                    const daysPayload = daysInRange.map(date => ({
+                        collaboratorid: colid,
+                        originaldate: date,
+                        actualdate: date,
+                        status: status,
+                        notes: ''
+                    }));
+
+                    await StateManager.saveVacationRequest(request, daysPayload);
+                    count++;
+                }
+
+                this.showToast(`Historial cargado: ${count} periodos registrados`, 'success');
+                this.refreshView(this.currentView);
+            } catch (err) {
+                console.error(err);
+                this.showToast('Error al procesar historial: ' + err.message, 'error');
+            }
+        };
+        reader.readAsArrayBuffer(file);
+    },
+
+    generateDaysList(startStr, endStr) {
+        const days = [];
+        let curr = new Date(startStr + 'T12:00:00');
+        const end = new Date(endStr + 'T12:00:00');
+
+        while (curr <= end) {
+            const dateStr = curr.toISOString().split('T')[0];
+            if (VacationManager.isBusinessDay(dateStr)) {
+                days.push(dateStr);
+            }
+            curr.setDate(curr.getDate() + 1);
+        }
+        return days;
     },
 
     handleExportAllHistory() {

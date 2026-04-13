@@ -321,7 +321,7 @@
                         </div>
                         <div class="divider"></div>
                         <div class="config-section">
-                            <h3><i class="fas fa-file-upload"></i> Datos maestros</h3>
+                            <h3><i class="fas fa-file-upload"></i> Datos maestros (Personal)</h3>
                             <div class="card" id="upload-personnel-area" style="text-align:center; padding: 40px; border: 2px dashed var(--border-color); cursor: pointer;">
                             <i class="fas fa-file-excel" style="font-size: 2.5rem; color: #27ae60; margin-bottom: 15px;"></i>
                             <h3 style="margin:0;">Subida Masiva de Personal</h3>
@@ -331,6 +331,23 @@
                             <div style="margin-top: 25px; border-top: 1px solid var(--border-color); padding-top: 20px; display: flex; justify-content: center; gap: 15px;">
                                 <button id="btn-trigger-upload" class="btn btn-secondary"><i class="fas fa-upload"></i> Subir Datos</button>
                                 <button id="btn-download-template" class="btn btn-primary" onclick="event.stopPropagation(); UIManager.handleDownloadTemplate()"><i class="fas fa-download"></i> Descargar Plantilla</button>
+                            </div>
+                        </div>
+                        </div>
+
+                        <div class="divider"></div>
+
+                        <div class="config-section">
+                            <h3><i class="fas fa-history"></i> Datos maestros (Historial de Vacaciones)</h3>
+                            <div class="card" id="upload-history-area" style="text-align:center; padding: 40px; border: 2px dashed var(--border-color); cursor: pointer;">
+                            <i class="fas fa-calendar-alt" style="font-size: 2.5rem; color: #3498db; margin-bottom: 15px;"></i>
+                            <h3 style="margin:0;">Subida Masiva de Historial</h3>
+                            <p style="font-size: 0.9rem; color: var(--text-secondary); margin-top: 10px;">Sube periodos ya disfrutados (Rangos de fechas)</p>
+                            <input type="file" id="history-file-input" style="display:none;" accept=".xlsx, .xls, .csv">
+                            
+                            <div style="margin-top: 25px; border-top: 1px solid var(--border-color); padding-top: 20px; display: flex; justify-content: center; gap: 15px;">
+                                <button id="btn-trigger-history-upload" class="btn btn-secondary"><i class="fas fa-upload"></i> Subir Historial</button>
+                                <button id="btn-download-history-template" class="btn btn-primary" onclick="event.stopPropagation(); UIManager.handleDownloadHistoryTemplate()"><i class="fas fa-download"></i> Descargar Plantilla</button>
                             </div>
                         </div>
                         </div>
