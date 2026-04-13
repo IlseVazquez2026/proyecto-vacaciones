@@ -357,8 +357,9 @@ const UIManager = {
 
     handleDownloadHistoryTemplate() {
         const data = [
-            ["ID Empleado", "Fecha Inicio (AAAA-MM-DD)", "Fecha Fin (AAAA-MM-DD)", "Estatus (approved/cancelled)", "Notas"],
-            ["00", "2023-04-10", "2023-04-15", "approved", "Vacaciones de Semana Santa"]
+            ["ID Empleado", "Fecha (AAAA-MM-DD)", "Estatus (approved/cancelled)", "Notas"],
+            ["00", "2023-04-10", "approved", "Día disfrutado"],
+            ["00", "2023-04-11", "approved", "Día disfrutado"]
         ];
         this.downloadExcel(data, 'plantilla_historial_vacaciones.xlsx', 'Historial');
     },
@@ -371,47 +372,51 @@ const UIManager = {
                 const rows = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]]);
                 if (rows.length === 0) return;
 
-                this.showToast(`Procesando historial de ${rows.length} periodos...`, 'info');
+                this.showToast(`Procesando historial de ${rows.length} registros...`, 'info');
 
-                let count = 0;
-                for (const row of rows) {
-                    const colid = String(row['ID Empleado'] || row['id'] || '');
-                    const startRaw = row['Fecha Inicio (AAAA-MM-DD)'] || row['desde'];
-                    const endRaw = row['Fecha Fin (AAAA-MM-DD)'] || row['hasta'];
-                    const status = (row['Estatus (approved/cancelled)'] || row['estatus'] || 'approved').toLowerCase();
-                    const notes = row['Notas'] || row['notas'] || '';
+                // 1. Agrupar por Empleado
+                const groups = {};
+                rows.forEach(row => {
+                    const colid = String(row['ID Empleado'] || row['id'] || row['ID'] || '');
+                    const dateRaw = row['Fecha (AAAA-MM-DD)'] || row['fecha'] || row['Fecha'];
+                    if (!colid || !dateRaw) return;
 
-                    if (!colid || !startRaw || !endRaw) continue;
+                    if (!groups[colid]) groups[colid] = [];
+                    groups[colid].push({
+                        date: this.normalizeExcelDate(dateRaw),
+                        status: (row['Estatus (approved/cancelled)'] || row['estatus'] || 'approved').toLowerCase(),
+                        notes: row['Notas'] || row['notas'] || 'Carga Histórica'
+                    });
+                });
 
-                    const startdate = this.normalizeExcelDate(startRaw);
-                    const enddate = this.normalizeExcelDate(endRaw);
-
-                    // Generar lista de días hábiles
-                    const daysInRange = this.generateDaysList(startdate, enddate);
-                    if (daysInRange.length === 0) continue;
-
+                // 2. Procesar cada grupo como una solicitud única
+                let employeesProcessed = 0;
+                for (const colid in groups) {
+                    const dates = groups[colid];
+                    const sortedDates = dates.map(d => d.date).sort();
+                    
                     const request = {
                         collaboratorid: colid,
-                        startdate: startdate,
-                        enddate: enddate,
-                        dayscount: daysInRange.length,
-                        status: status,
-                        observations: notes
+                        startdate: sortedDates[0],
+                        enddate: sortedDates[sortedDates.length - 1],
+                        dayscount: dates.filter(d => VacationManager.isBusinessDay(d.date)).length,
+                        status: 'approved',
+                        observations: 'Carga Masiva de Historial'
                     };
 
-                    const daysPayload = daysInRange.map(date => ({
+                    const daysPayload = dates.map(d => ({
                         collaboratorid: colid,
-                        originaldate: date,
-                        actualdate: date,
-                        status: status,
-                        notes: ''
+                        originaldate: d.date,
+                        actualdate: d.date,
+                        status: d.status,
+                        notes: d.notes
                     }));
 
                     await StateManager.saveVacationRequest(request, daysPayload);
-                    count++;
+                    employeesProcessed++;
                 }
 
-                this.showToast(`Historial cargado: ${count} periodos registrados`, 'success');
+                this.showToast(`Historial cargado: ${employeesProcessed} empleados actualizados`, 'success');
                 this.refreshView(this.currentView);
             } catch (err) {
                 console.error(err);
@@ -421,20 +426,7 @@ const UIManager = {
         reader.readAsArrayBuffer(file);
     },
 
-    generateDaysList(startStr, endStr) {
-        const days = [];
-        let curr = new Date(startStr + 'T12:00:00');
-        const end = new Date(endStr + 'T12:00:00');
 
-        while (curr <= end) {
-            const dateStr = curr.toISOString().split('T')[0];
-            if (VacationManager.isBusinessDay(dateStr)) {
-                days.push(dateStr);
-            }
-            curr.setDate(curr.getDate() + 1);
-        }
-        return days;
-    },
 
     handleExportAllHistory() {
         const days = StateManager.data.vacationdays || [];
