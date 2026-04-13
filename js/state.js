@@ -120,15 +120,22 @@ const StateManager = {
         const now = new Date().toISOString();
         const payload = { ...collaborator, lastUpdate: now };
         
-        // Si hay un oldId, significa que estamos editando y posiblemente cambiando el ID primario
         if (oldId && oldId !== collaborator.id) {
-            // Eliminar viejo y crear nuevo (Supabase no permite cambiar PK fácilmente sin riesgos de integridad)
-            // Pero como nuestras tablas tienen FK, debemos hacerlo con cuidado. 
-            // En este prototipo, usaremos upsert directo si el ID no cambia, o delete+insert si cambia.
             await supabase.from('collaborators').delete().eq('id', oldId);
         }
 
         const { error } = await supabase.from('collaborators').upsert(payload);
+        if (error) throw error;
+        
+        await this.init();
+        return true;
+    },
+
+    async bulkSaveCollaborators(list) {
+        const now = new Date().toISOString();
+        const payloads = list.map(c => ({ ...c, lastUpdate: now }));
+        
+        const { error } = await supabase.from('collaborators').upsert(payloads);
         if (error) throw error;
         
         await this.init();

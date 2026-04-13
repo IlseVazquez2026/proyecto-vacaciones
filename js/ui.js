@@ -102,9 +102,10 @@ const UIManager = {
         if (btnUpload && fileInput) {
             btnUpload.onclick = () => { if (AuthManager.checkPermission('admin')) fileInput.click(); };
             uploadArea.onclick = () => { if (AuthManager.checkPermission('admin')) fileInput.click(); };
-            fileInput.onchange = (e) => {
+            fileInput.onchange = async (e) => {
                 if (e.target.files.length > 0) {
-                    this.showToast(`Procesando archivo: ${e.target.files[0].name}`, 'info');
+                    await this.handleFileUpload(e.target.files[0]);
+                    e.target.value = ''; // Reset for next time
                 }
             };
         }
@@ -468,10 +469,90 @@ const UIManager = {
 
     handleDownloadTemplate() {
         const data = [
-            ["Nombre Completo", "Fecha Ingreso (AAAA-MM-DD)", "Area", "Estatus (active/inactive)", "Notas"],
-            ["Juan Perez", "2023-01-15", "Ventas", "active", "Coordinador/Pendiente de validar"]
+            ["ID", "Nombre Completo", "Fecha Ingreso (AAAA-MM-DD)", "Area", "Estatus (active/inactive)", "Notas"],
+            ["00", "Juan Perez", "2023-01-15", "Ventas", "active", "Coordinador/Pendiente de validar"]
         ];
         this.downloadExcel(data, 'plantilla_personal.xlsx', 'Plantilla');
+    },
+
+    async handleFileUpload(file) {
+        const reader = new FileReader();
+        reader.onload = async (e) => {
+            try {
+                const data = new Uint8Array(e.target.result);
+                const workbook = XLSX.read(data, { type: 'array' });
+                const sheet = workbook.Sheets[workbook.SheetNames[0]];
+                const rows = XLSX.utils.sheet_to_json(sheet);
+
+                if (rows.length === 0) {
+                    this.showToast('El archivo está vacío', 'error');
+                    return;
+                }
+
+                this.showToast(`Procesando ${rows.length} colaboradores...`, 'info');
+
+                // Obtener ID correlativo base
+                const currentCols = StateManager.getCollaborators('all');
+                let nextIdNum = 0;
+                
+                // Intentar encontrar el numero mas alto si los IDs son numericos
+                const numericIds = currentCols.map(c => parseInt(c.id)).filter(n => !isNaN(n));
+                if (numericIds.length > 0) {
+                    nextIdNum = Math.max(...numericIds) + 1;
+                }
+
+                const collaboratorsToSave = rows.map(row => {
+                    let id = row['ID'] || row['id'] || row['Clave'] || '';
+                    if (!id) {
+                        id = String(nextIdNum).padStart(2, '0');
+                        nextIdNum++;
+                    }
+
+                    return {
+                        id: String(id),
+                        name: row['Nombre Completo'] || row['nombre'] || 'Sin Nombre',
+                        hireDate: this.normalizeExcelDate(row['Fecha Ingreso (AAAA-MM-DD)'] || row['fecha']),
+                        area: row['Area'] || row['area'] || '',
+                        status: (row['Estatus (active/inactive)'] || row['estatus'] || 'active').toLowerCase(),
+                        notes: row['Notas'] || row['notas'] || ''
+                    };
+                });
+
+                await StateManager.bulkSaveCollaborators(collaboratorsToSave);
+                this.showToast(`Carga masiva completada: ${collaboratorsToSave.length} registros`, 'success');
+                this.refreshView(this.currentView);
+                this.renderStats();
+
+            } catch (err) {
+                console.error(err);
+                this.showToast('Error al procesar el archivo Excel: ' + err.message, 'error');
+            }
+        };
+        reader.readAsArrayBuffer(file);
+    },
+
+    normalizeExcelDate(val) {
+        if (!val) return new Date().toISOString().split('T')[0];
+        // Si ya es string AAAA-MM-DD
+        if (typeof val === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(val)) return val;
+        
+        // Si es numero de Excel (serial)
+        if (typeof val === 'number') {
+            const date = new Date(Math.round((val - 25569) * 86400 * 1000));
+            return date.toISOString().split('T')[0];
+        }
+
+        // Caso string DD/MM/AAAA
+        if (typeof val === 'string' && val.includes('/')) {
+            const parts = val.split('/');
+            if (parts.length === 3) {
+                // Asumimos DD/MM/AAAA o MM/DD/AAAA. Intentamos normalizar.
+                const d = new Date(val);
+                if (!isNaN(d.getTime())) return d.toISOString().split('T')[0];
+            }
+        }
+
+        return String(val);
     },
 
     handleExportAllHistory() {
