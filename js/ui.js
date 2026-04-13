@@ -333,11 +333,17 @@ const UIManager = {
 
     async handleQuickDelete(id) {
         if (!AuthManager.checkPermission('admin')) return;
-        if (confirm('¿Dar de baja a este colaborador? El histórico se conservará.')) {
-            await StateManager.deleteCollaborator(id);
-            this.showToast('Baja procesada correctamente', 'success');
-            this.refreshView('collaborators');
-            this.renderStats();
+        if (confirm('¡ADVERTENCIA! ¿Deseas eliminar permanentemente a este colaborador? SE BORRARÁ TODO SU HISTORIAL DE VACACIONES Y ESTA ACCIÓN ES IRREVERSIBLE.')) {
+            try {
+                await StateManager.deleteCollaborator(id);
+                this.showToast('Colaborador eliminado definitivamente', 'success');
+                this.refreshView('collaborators');
+                this.refreshView('dashboard'); // Refrescar KPIs
+                this.refreshView('personnel'); // Refrescar panel general
+                Visualizer.populateColSelect(); // Refrescar selector de histórico
+            } catch (err) {
+                this.showToast('Error al eliminar: ' + err.message, 'error');
+            }
         }
     },
 

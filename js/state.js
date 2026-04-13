@@ -143,14 +143,23 @@ const StateManager = {
     },
 
     async deleteCollaborator(id) {
-        const col = this.getCollaboratorById(id);
-        if (col) {
-            const { error } = await supabase.from('collaborators').update({
-                status: 'inactive',
-                lastupdate: new Date().toISOString()
-            }).eq('id', id);
+        // ELIMINACIÓN DEFINITIVA (HARD DELETE)
+        try {
+            // 1. Borrar días individuales
+            await supabase.from('vacation_days').delete().eq('collaboratorid', id);
+            
+            // 2. Borrar solicitudes de vacaciones
+            await supabase.from('vacation_requests').delete().eq('collaboratorid', id);
+            
+            // 3. Borrar el colaborador
+            const { error } = await supabase.from('collaborators').delete().eq('id', id);
+            
             if (error) throw error;
+            
             await this.init();
+        } catch (err) {
+            console.error('Error en eliminación definitiva:', err);
+            throw err;
         }
     },
 
