@@ -15,13 +15,14 @@ const VacationManager = {
         const col = StateManager.getCollaboratorById(colId);
         if (!col) return [];
         
-        const hire = new Date(col.hiredate);
+        const hire = new Date(col.hiredate + 'T12:00:00');
+        const today = new Date();
         let maxDate = new Date(); // Target cutoff date
         
         // Revisar si hay vacaciones solicitadas a futuro para generar los periodos
         const allDays = StateManager.getVacationDays(colId);
         allDays.forEach(d => {
-            const dDate = new Date(d.actualdate);
+            const dDate = new Date(d.actualdate + 'T12:00:00');
             if (dDate > maxDate) maxDate = dDate;
         });
 
@@ -33,20 +34,19 @@ const VacationManager = {
             const anniversary = new Date(hire);
             anniversary.setFullYear(hire.getFullYear() + yearNum);
             
-            // Si el inicio del periodo ya superó la fecha máxima de las vacaciones agendadas, dejamos de generar periodos.
             const startPeriod = new Date(hire);
             startPeriod.setFullYear(hire.getFullYear() + yearNum - 1);
 
+            // Si el inicio del periodo ya superó la fecha máxima de las vacaciones agendadas, dejamos de generar periodos.
             if (startPeriod > maxDate) {
                 break;
             }
             
-            // Determinar legislación aplicable (si aniversario >= 2023-01-01 -> post2023)
-            const cutoffDate = new Date('2023-01-01');
-            const law = anniversary >= cutoffDate ? 'post2023' : 'pre2023';
+            // Determinar legislación aplicable
+            const lawEntry = anniversary >= new Date('2023-01-01') ? 'post2023' : 'pre2023';
             
             // Calcular días según tabla
-            const currentRules = rules[law];
+            const currentRules = rules[lawEntry];
             let days = 0;
             for (const level of currentRules) {
                 if (yearNum >= level.years) {
@@ -61,20 +61,29 @@ const VacationManager = {
                 label: `${startPeriod.getFullYear()}-${anniversary.getFullYear()}`,
                 activationDate: anniversary.toISOString().split('T')[0],
                 days: days,
-                law: law
+                law: lawEntry,
+                isEarned: anniversary <= today // La clave: ¿Ya se cumplió el aniversario?
             });
             
             yearNum++;
             if (yearNum > 50) break;
         }
         
-        // Asegurar que si el empleado tiene menos de 1 año y no ha pedido adelantos, al menos se muestre su primer periodo para uso futuro
+        // Asegurar que si el empleado tiene menos de 1 año, al menos se muestre su primer periodo como pendiente
         if (periods.length === 0) {
-            const law = new Date(col.hiredate) >= new Date('2023-01-01') ? 'post2023' : 'pre2023';
-            let days = rules[law][0].days;
             const anniversary = new Date(hire);
             anniversary.setFullYear(hire.getFullYear() + 1);
-            periods.push({ year: 1, label: `${hire.getFullYear()}-${anniversary.getFullYear()}`, activationDate: anniversary.toISOString().split('T')[0], days, law });
+            const lawEntry = anniversary >= new Date('2023-01-01') ? 'post2023' : 'pre2023';
+            let days = rules[lawEntry][0].days;
+            
+            periods.push({ 
+                year: 1, 
+                label: `${hire.getFullYear()}-${anniversary.getFullYear()}`, 
+                activationDate: anniversary.toISOString().split('T')[0], 
+                days, 
+                law: lawEntry,
+                isEarned: anniversary <= today
+            });
         }
         
         return periods;
@@ -86,7 +95,11 @@ const VacationManager = {
         if (!col) return null;
 
         const periods = this.getAnniversaryPeriods(colId);
-        const totalAssigned = periods.reduce((acc, p) => acc + p.days, 0);
+        
+        // SOLO SUMAR DÍAS DE PERIODOS CUMPLIDOS (EARNED)
+        const totalAssigned = periods
+            .filter(p => p.isEarned)
+            .reduce((acc, p) => acc + p.days, 0);
         
         const allDays = StateManager.getVacationDays(colId);
         const activeDays = allDays.filter(d => 
@@ -95,8 +108,7 @@ const VacationManager = {
 
         const totalUsed = activeDays.filter(d => this.isBusinessDay(d.actualdate)).length;
 
-        // Distribución por VENTANA CRONOLÓGICA
-        const hireDateObj = new Date(col.hiredate);
+        const hireDateObj = new Date(col.hiredate + 'T12:00:00');
         
         const periodsWithConsumption = periods.map((p, index) => {
             const startDate = new Date(hireDateObj);
@@ -106,7 +118,7 @@ const VacationManager = {
             endDate.setFullYear(hireDateObj.getFullYear() + p.year);
             
             const periodDays = activeDays.filter(day => {
-                const dDate = new Date(day.actualdate);
+                const dDate = new Date(day.actualdate + 'T12:00:00');
                 return dDate >= startDate && dDate < endDate;
             }).map(day => ({
                 ...day,
