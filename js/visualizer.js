@@ -53,6 +53,7 @@ const Visualizer = {
                 this.miniMonth = 11;
                 this.miniYear--;
             }
+            this.updateMiniDateSelectors();
             this.renderMiniCalendar();
         };
 
@@ -62,8 +63,24 @@ const Visualizer = {
                 this.miniMonth = 0;
                 this.miniYear++;
             }
+            this.updateMiniDateSelectors();
             this.renderMiniCalendar();
         };
+
+        const miniMSelect = document.getElementById('mini-month-select');
+        const miniYSelect = document.getElementById('mini-year-select');
+        if (miniMSelect) {
+            miniMSelect.onchange = (e) => {
+                this.miniMonth = parseInt(e.target.value);
+                this.renderMiniCalendar();
+            };
+        }
+        if (miniYSelect) {
+            miniYSelect.onchange = (e) => {
+                this.miniYear = parseInt(e.target.value);
+                this.renderMiniCalendar();
+            };
+        }
 
         // Histórico
         document.getElementById('history-col-select').onchange = (e) => {
@@ -80,20 +97,33 @@ const Visualizer = {
         const months = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
         const mSelect = document.getElementById('cal-month-select');
         const ySelect = document.getElementById('cal-year-select');
+        const mmSelect = document.getElementById('mini-month-select');
+        const mySelect = document.getElementById('mini-year-select');
 
-        mSelect.innerHTML = months.map((m, i) => `<option value="${i}" ${i === this.currentMonth ? 'selected' : ''}>${m}</option>`).join('');
-        
+        const mOptions = months.map((m, i) => `<option value="${i}">${m}</option>`).join('');
         const currentY = new Date().getFullYear();
-        let yhtml = '';
+        let yOptions = '';
         for (let y = currentY - 5; y <= currentY + 5; y++) {
-            yhtml += `<option value="${y}" ${y === this.currentYear ? 'selected' : ''}>${y}</option>`;
+            yOptions += `<option value="${y}">${y}</option>`;
         }
-        ySelect.innerHTML = yhtml;
+
+        if (mSelect) mSelect.innerHTML = mOptions;
+        if (ySelect) ySelect.innerHTML = yOptions;
+        if (mmSelect) mmSelect.innerHTML = mOptions;
+        if (mySelect) mySelect.innerHTML = yOptions;
+
+        this.updateDateSelectors();
+        this.updateMiniDateSelectors();
     },
 
     updateDateSelectors() {
-        document.getElementById('cal-month-select').value = this.currentMonth;
-        document.getElementById('cal-year-select').value = this.currentYear;
+        if (document.getElementById('cal-month-select')) document.getElementById('cal-month-select').value = this.currentMonth;
+        if (document.getElementById('cal-year-select')) document.getElementById('cal-year-select').value = this.currentYear;
+    },
+
+    updateMiniDateSelectors() {
+        if (document.getElementById('mini-month-select')) document.getElementById('mini-month-select').value = this.miniMonth;
+        if (document.getElementById('mini-year-select')) document.getElementById('mini-year-select').value = this.miniYear;
     },
 
     // --- VISTA 0: DASHBOARD ---
@@ -117,10 +147,7 @@ const Visualizer = {
 
     renderMiniCalendar() {
         const container = document.getElementById('quick-vacation-calendar');
-        const monthLabel = document.getElementById('mini-cal-month-year');
-        const months = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"];
-        
-        monthLabel.textContent = `${months[this.miniMonth]} ${this.miniYear}`;
+        this.updateMiniDateSelectors();
         
         const firstDay = new Date(this.miniYear, this.miniMonth, 1).getDay();
         const daysInMonth = new Date(this.miniYear, this.miniMonth + 1, 0).getDate();
