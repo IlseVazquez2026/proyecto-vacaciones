@@ -475,12 +475,45 @@ const UIManager = {
 
     handleExportAllHistory() {
         const days = StateManager.data.vacationdays || [];
-        const data = [["ID Empleado", "Nombre", "Fecha", "Estatus", "Notas"]];
-        days.forEach(d => {
-            const col = StateManager.getCollaboratorById(d.collaboratorid);
-            if (col) data.push([col.id, col.name, d.actualdate, d.status, d.notes || '']);
+        const collaborators = StateManager.getCollaborators('all');
+        
+        // 1. Crear mapa global de Día -> Periodo
+        const dayPeriodMap = {};
+        
+        collaborators.forEach(col => {
+            const balance = VacationManager.getCollaboratorBalance(col.id);
+            if (balance && balance.periods) {
+                balance.periods.forEach(p => {
+                    if (p.daysList) {
+                        p.daysList.forEach(d => {
+                            dayPeriodMap[d.id] = `Año ${p.year}`;
+                        });
+                    }
+                });
+            }
         });
-        this.downloadExcel(data, 'historico.xlsx');
+
+        const data = [["ID Empleado", "Nombre", "Fecha", "Periodo Asignado", "Estatus", "Notas"]];
+        
+        // Ordenar días por fecha descendente para el Excel
+        const sortedDays = [...days].sort((a,b) => new Date(b.actualdate + 'T12:00:00') - new Date(a.actualdate + 'T12:00:00'));
+
+        sortedDays.forEach(d => {
+            const col = StateManager.getCollaboratorById(d.collaboratorid);
+            if (col) {
+                const periodLabel = dayPeriodMap[d.id] || (d.status === 'cancelled' ? 'Cancelado' : 'N/A (Excedente)');
+                data.push([
+                    col.id, 
+                    col.name, 
+                    this.formatDate(d.actualdate), 
+                    periodLabel,
+                    d.status, 
+                    d.notes || ''
+                ]);
+            }
+        });
+        
+        this.downloadExcel(data, `Historial_Vacaciones_${new Date().toISOString().split('T')[0]}.xlsx`);
     },
 
     downloadExcel(dataArray, filename) {
