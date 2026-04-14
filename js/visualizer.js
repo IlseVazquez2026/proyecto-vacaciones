@@ -103,7 +103,7 @@ const Visualizer = {
         const mOptions = months.map((m, i) => `<option value="${i}">${m}</option>`).join('');
         const currentY = new Date().getFullYear();
         let yOptions = '';
-        for (let y = currentY - 5; y <= currentY + 5; y++) {
+        for (let y = 2013; y <= currentY + 10; y++) {
             yOptions += `<option value="${y}">${y}</option>`;
         }
 
