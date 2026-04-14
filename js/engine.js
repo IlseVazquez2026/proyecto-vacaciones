@@ -169,10 +169,13 @@ const VacationManager = {
         // 3. FILTRADO: Ocultar periodos futuros sin consumo (Vacaciones por adelantado)
         const finalPeriods = periodsWithConsumption.filter(p => p.isEarned || p.daysList.length > 0);
 
+        const summaryAssigned = finalPeriods.reduce((acc, p) => acc + p.days, 0);
+        const summaryUsed = finalPeriods.reduce((acc, p) => acc + p.used, 0);
+
         return {
-            assigned: totalAssigned,
-            used: totalUsed,
-            balance: totalAssigned - totalUsed,
+            assigned: summaryAssigned,
+            used: summaryUsed,
+            balance: summaryAssigned - summaryUsed,
             periods: finalPeriods,
             requests: requests.sort((a, b) => new Date(b.registrationdate + 'T12:00:00') - new Date(a.registrationdate + 'T12:00:00'))
         };
