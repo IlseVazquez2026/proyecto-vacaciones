@@ -94,44 +94,39 @@ const VacationManager = {
         const col = StateManager.getCollaboratorById(colId);
         if (!col) return null;
 
+        // 1. Obtener todos los periodos posibles
         const periods = this.getAnniversaryPeriods(colId);
+        const totalAssigned = periods.reduce((acc, p) => acc + p.days, 0); // Todos los días asignados
         
-        // SOLO SUMAR DÍAS DE PERIODOS CUMPLIDOS (EARNED)
-        const totalAssigned = periods
-            .filter(p => p.isEarned)
-            .reduce((acc, p) => acc + p.days, 0);
-        
+        // 2. Obtener todos los días consumidos (Aprobados/Programados) ordenados cronológicamente
         const allDays = StateManager.getVacationDays(colId);
-        const activeDays = allDays.filter(d => 
-            (d.status === 'approved' || d.status === 'programmed')
-        ).sort((a, b) => new Date(a.actualdate) - new Date(b.actualdate)); 
+        const activeDaysPool = allDays
+            .filter(d => (d.status === 'approved' || d.status === 'programmed') && this.isBusinessDay(d.actualdate))
+            .sort((a, b) => new Date(a.actualdate + 'T12:00:00') - new Date(b.actualdate + 'T12:00:00'));
 
-        const totalUsed = activeDays.filter(d => this.isBusinessDay(d.actualdate)).length;
+        const totalUsed = activeDaysPool.length;
 
-        const hireDateObj = new Date(col.hiredate + 'T12:00:00');
-        
-        const periodsWithConsumption = periods.map((p, index) => {
-            const startDate = new Date(hireDateObj);
-            startDate.setFullYear(hireDateObj.getFullYear() + p.year - 1);
+        // 3. LOGICA FIFO: Llenar los periodos con los días consumidos en orden
+        let dayIndex = 0;
+        const periodsWithConsumption = periods.map(p => {
+            const daysInThisPeriod = [];
+            const capacity = p.days;
             
-            const endDate = new Date(hireDateObj);
-            endDate.setFullYear(hireDateObj.getFullYear() + p.year);
-            
-            const periodDays = activeDays.filter(day => {
-                const dDate = new Date(day.actualdate + 'T12:00:00');
-                return dDate >= startDate && dDate < endDate;
-            }).map(day => ({
-                ...day,
-                isBusinessDay: this.isBusinessDay(day.actualdate)
-            }));
+            // Consumir del pool hasta agotar la capacidad del periodo o los días disponibles
+            while (daysInThisPeriod.length < capacity && dayIndex < activeDaysPool.length) {
+                daysInThisPeriod.push({
+                    ...activeDaysPool[dayIndex],
+                    isBusinessDay: true
+                });
+                dayIndex++;
+            }
 
-            const usedInPeriod = periodDays.filter(d => d.isBusinessDay).length;
-
+            const usedCount = daysInThisPeriod.length;
             return {
                 ...p,
-                used: usedInPeriod,
-                balance: p.days - usedInPeriod,
-                daysList: periodDays 
+                used: usedCount,
+                balance: p.days - usedCount,
+                daysList: daysInThisPeriod
             };
         });
 
@@ -149,7 +144,7 @@ const VacationManager = {
             used: totalUsed,
             balance: totalAssigned - totalUsed,
             periods: periodsWithConsumption,
-            requests: requests.sort((a, b) => new Date(b.registrationdate) - new Date(a.registrationdate))
+            requests: requests.sort((a, b) => new Date(b.registrationdate + 'T12:00:00') - new Date(a.registrationdate + 'T12:00:00'))
         };
     },
 

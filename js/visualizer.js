@@ -341,20 +341,19 @@ const Visualizer = {
                         <div class="period-body" style="padding: 25px;">
                             <div style="display: grid; grid-template-columns: 1fr 2fr; gap: 30px; margin-bottom: 25px;">
                                 <div class="period-stats">
-                    <div class="card ${p.isEarned ? '' : 'period-pending'}" style="margin-bottom: 25px; border-left: 5px solid ${p.isEarned ? 'var(--primary-color)' : '#cbd5e0'};">
+                        <div class="card" style="margin-bottom: 25px; border-left: 5px solid var(--primary-color);">
                             <div class="card-header" style="display: flex; justify-content: space-between; align-items: center; padding-bottom: 15px; border-bottom: 1px solid #eee;">
                                 <div>
-                                    <h3 style="margin:0; color: ${p.isEarned ? 'var(--text-primary)' : 'var(--text-secondary)'};">
+                                    <h3 style="margin:0;">
                                         Año ${p.year} <small style="font-weight: normal; opacity: 0.6;">(${p.label})</small>
-                                        ${!p.isEarned ? '<span class="status-pill" style="background:#eee; color:#666; font-size:0.6rem; margin-left:10px;">PENDIENTE DE DEVENGAR</span>' : '<span class="status-pill pill-active" style="font-size:0.6rem; margin-left:10px;">CUMPLIDO</span>'}
                                     </h3>
                                     <p style="margin:5px 0 0; font-size: 0.75rem; color: var(--text-secondary);">
-                                        Activación legal: <strong>${new Date(p.activationDate + 'T12:00:00').toLocaleDateString()}</strong>
+                                        Periodo de antigüedad. Activación legal: <strong>${new Date(p.activationDate + 'T12:00:00').toLocaleDateString()}</strong>
                                     </p>
                                 </div>
                                 <div style="text-align: right;">
-                                    <div style="font-size: 0.7rem; text-transform: uppercase; color: var(--text-secondary);">Días por Ley</div>
-                                    <div style="font-size: 1.5rem; font-weight: 700; color: ${p.isEarned ? 'var(--primary-color)' : '#999'};">${p.days}</div>
+                                    <div style="font-size: 0.7rem; text-transform: uppercase; color: var(--text-secondary);">Días Asignados</div>
+                                    <div style="font-size: 1.5rem; font-weight: 700; color: var(--primary-color);">${p.days}</div>
                                 </div>
                             </div>
 
@@ -366,17 +365,15 @@ const Visualizer = {
                                             <div style="font-size: 0.7rem; text-transform: uppercase;">Disponibles</div>
                                             <div style="font-size: 1.5rem; font-weight: 700; color: var(--success-color);">${p.balance}</div>
                                             <div style="font-size: 0.7rem; text-transform: uppercase;">Usados</div>
-                                            <div style="font-size: 1.5rem; font-weight: 700; color: ${p.used > 0 ? 'var(--secondary-color)' : '#ccc'};">${p.used}</div>
+                                            <div style="font-size: 1.5rem; font-weight: 700; color: var(--secondary-color);">${p.used}</div>
                                         </div>
                                     </div>
                                     <div class="progress-bar" style="height: 8px; background-color: #eee; border-radius: 4px; overflow: hidden;">
-                                        <div style="width: ${progress}%; height: 100%; background-color: ${p.isEarned ? 'var(--secondary-color)' : '#ccc'};"></div>
+                                        <div style="width: ${progress}%; height: 100%; background-color: var(--secondary-color);"></div>
                                     </div>
                                 </div>
                                 <div style="display:flex; align-items:center; color:var(--text-secondary); font-size:0.85rem; line-height:1.2;">
-                                    ${p.isEarned 
-                                        ? 'Días totalmente devengados y disponibles para su uso legal.' 
-                                        : '<i class="fas fa-clock" style="margin-right:5px;"></i> Estos días se activarán oficialmente al cumplir el año.'}
+                                    Consumo secuencial por antigüedad (FIFO). Se agotan primero los días de este periodo antes de pasar al siguiente.
                                 </div>
                             </div>      </div>
 
