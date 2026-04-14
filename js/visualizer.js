@@ -411,19 +411,19 @@ const Visualizer = {
                                     ${[...p.daysList]
                                         .sort((a, b) => new Date(b.actualdate + 'T12:00:00') - new Date(a.actualdate + 'T12:00:00'))
                                         .map(d => `
-                                        <tr style="${!d.isBusinessDay ? 'opacity: 0.6; background-color: #fcfcfc;' : ''}">
+                                        <tr style="${!d.isBusinessDay ? 'background-color: #fef2f2; border-left: 4px solid #ef4444;' : ''}">
                                             <td style="white-space: nowrap;">
                                                 <div style="display: flex; align-items: center; gap: 8px;">
-                                                    <strong>${new Date(d.actualdate + 'T12:00:00').toLocaleDateString()}</strong>
+                                                    <strong style="${!d.isBusinessDay ? 'color: #b91c1c;' : ''}">${new Date(d.actualdate + 'T12:00:00').toLocaleDateString()}</strong>
                                                     <button class="btn-icon admin-only" onclick="Visualizer.editDayDate('${d.id}', '${d.actualdate}')" style="width:20px; height:20px;" title="Editar Fecha">
                                                         <i class="fas fa-pencil-alt" style="font-size:0.6rem;"></i>
                                                     </button>
                                                 </div>
-                                                ${!d.isBusinessDay ? '<span style="display:block; font-size: 0.65rem; color: #999;">(No laborable)</span>' : ''}
+                                                ${!d.isBusinessDay ? '<span style="display:block; font-size: 0.65rem; color: #b91c1c; font-weight: 600; margin-top: 2px;">⚠️ ERROR: Fin de semana</span>' : ''}
                                             </td>
                                             <td>
                                                 <div class="admin-only">
-                                                    <select class="status-select input-field" style="padding:2px; font-size:0.75rem; height:auto; width:100%" onchange="Visualizer.updateDayStatus('${d.id}', this.value)">
+                                                    <select class="status-select input-field" style="padding:2px; font-size:0.75rem; height:auto; width:100%; ${!d.isBusinessDay ? 'border-color: #ef4444;' : ''}" onchange="Visualizer.updateDayStatus('${d.id}', this.value)">
                                                         <option value="approved" ${d.status === 'approved' ? 'selected' : ''}>Aprobado</option>
                                                         <option value="programmed" ${d.status === 'programmed' ? 'selected' : ''}>Programado</option>
                                                         <option value="cancelled" ${d.status === 'cancelled' ? 'selected' : ''}>Cancelado</option>
