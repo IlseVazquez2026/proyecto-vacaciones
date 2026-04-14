@@ -108,7 +108,7 @@ const VacationManager = {
         
         const allDays = StateManager.getVacationDays(colId);
         const activeDaysPool = allDays
-            .filter(d => (d.status === 'approved' || d.status === 'programmed') && this.isBusinessDay(d.actualdate))
+            .filter(d => (d.status === 'approved' || d.status === 'programmed'))
             .sort((a, b) => new Date(a.actualdate + 'T12:00:00') - new Date(b.actualdate + 'T12:00:00'));
 
         const totalUsed = activeDaysPool.length;
@@ -124,7 +124,11 @@ const VacationManager = {
             
             // A. Primero agregar los días asignados MANUALMENTE a este año
             const myManualDays = manualDays.filter(d => parseInt(d.period_override) === p.year);
-            daysInThisPeriod.push(...myManualDays.map(d => ({ ...d, isBusinessDay: true, isManual: true })));
+            daysInThisPeriod.push(...myManualDays.map(d => ({ 
+                ...d, 
+                isBusinessDay: this.isBusinessDay(d.actualdate), 
+                isManual: true 
+            })));
 
             // B. Luego llenar el espacio restante con el FIFO Pool
             const capacityLeft = p.days - daysInThisPeriod.length;
@@ -140,9 +144,10 @@ const VacationManager = {
         let fifoIndex = 0;
         periodsWithConsumption.forEach(p => {
             while (p.capacityLeft > 0 && fifoIndex < fifoPool.length) {
+                const currentDay = fifoPool[fifoIndex];
                 p.daysList.push({
-                    ...fifoPool[fifoIndex],
-                    isBusinessDay: true,
+                    ...currentDay,
+                    isBusinessDay: this.isBusinessDay(currentDay.actualdate),
                     isManual: false
                 });
                 fifoIndex++;
