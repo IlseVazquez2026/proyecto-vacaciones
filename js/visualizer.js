@@ -361,8 +361,11 @@ const Visualizer = {
                     </thead>
                     <tbody>
                         ${balance.periods.map(p => `
-                            <tr>
-                                <td><strong>Año ${p.year}</strong></td>
+                            <tr style="${p.isEarned ? '' : 'background-color: #fff5f5;'}">
+                                <td>
+                                    <strong style="color: ${p.isEarned ? 'inherit' : '#dc2626'}">Año ${p.year}</strong>
+                                    ${p.isEarned ? '' : '<span style="display:block; font-size: 0.65rem; color: #dc2626; font-weight: 700;">ANTICIPO</span>'}
+                                </td>
                                 <td>${p.label}</td>
                                 <td>${new Date(p.activationDate + 'T12:00:00').toLocaleDateString()}</td>
                                 <td>${p.days}</td>
@@ -386,14 +389,15 @@ const Visualizer = {
                 ${[...balance.periods].reverse().map(p => {
                     const progress = (p.used / p.days) * 100;
                     return `
-                    <div class="card period-card" style="padding: 0; overflow: hidden; border: 1px solid var(--border-color); border-left: 5px solid ${p.balance > 0 ? 'var(--primary-color)' : '#cbd5e0'};">
-                        <div class="period-header" style="padding: 20px 25px; background-color: #f9f9fb; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center;">
+                    <div class="card period-card" style="padding: 0; overflow: hidden; border: 1px solid var(--border-color); border-left: 5px solid ${p.isEarned ? (p.balance > 0 ? 'var(--primary-color)' : '#cbd5e0') : '#dc2626'};">
+                        <div class="period-header" style="padding: 20px 25px; background-color: ${p.isEarned ? '#f9f9fb' : '#fef2f2'}; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center;">
                             <div>
-                                <h3 style="margin:0;">
+                                <h3 style="margin:0; color: ${p.isEarned ? 'inherit' : '#dc2626'}">
                                     AÑO ${p.year} <small style="font-weight: normal; opacity: 0.6;">(${p.label})</small>
+                                    ${p.isEarned ? '' : '<span style="margin-left: 10px; font-size: 0.7rem; background: #dc2626; color: white; padding: 2px 6px; border-radius: 4px; vertical-align: middle;">ANTICIPO</span>'}
                                 </h3>
-                                <p style="margin:5px 0 0; font-size: 0.75rem; color: var(--text-secondary);">
-                                    Activación legal: <strong>${new Date(p.activationDate + 'T12:00:00').toLocaleDateString()}</strong>
+                                <p style="margin:5px 0 0; font-size: 0.75rem; color: ${p.isEarned ? 'var(--text-secondary)' : '#b91c1c'};">
+                                    ${p.isEarned ? 'Activación legal:' : '⚠️ ADEUDADO / ADELANTO (Activa:'} <strong>${new Date(p.activationDate + 'T12:00:00').toLocaleDateString()}</strong>${p.isEarned ? '' : ')'}
                                 </p>
                             </div>
                             <div style="text-align: right;">

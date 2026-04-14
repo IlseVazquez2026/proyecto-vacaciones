@@ -128,11 +128,7 @@ const VacationManager = {
 
             // B. Luego llenar el espacio restante con el FIFO Pool
             const capacityLeft = p.days - daysInThisPeriod.length;
-            let filled = 0;
             
-            // Usamos un loop para sacar días del fifoPool de forma destructiva o controlada
-            // Nota: Para simplicidad, usaremos un puntero externo si quisiéramos persistir el estado entre periodos.
-            // Pero aquí procesamos todos los periodos. Necesitamos que el fifoPool se vaya vaciando.
             return {
                 ...p,
                 daysList: daysInThisPeriod, // Temporal, se terminará de llenar abajo
@@ -165,11 +161,14 @@ const VacationManager = {
             };
         });
 
+        // 3. FILTRADO: Ocultar periodos futuros sin consumo (Vacaciones por adelantado)
+        const finalPeriods = periodsWithConsumption.filter(p => p.isEarned || p.daysList.length > 0);
+
         return {
             assigned: totalAssigned,
             used: totalUsed,
             balance: totalAssigned - totalUsed,
-            periods: periodsWithConsumption,
+            periods: finalPeriods,
             requests: requests.sort((a, b) => new Date(b.registrationdate + 'T12:00:00') - new Date(a.registrationdate + 'T12:00:00'))
         };
     },
