@@ -407,7 +407,9 @@ const Visualizer = {
                                 </thead>
                                 <tbody>
                                     ${p.daysList.length === 0 ? '<tr><td colspan="4" style="text-align:center; padding:15px; opacity:0.5;">Sin días consumidos de este periodo.</td></tr>' : ''}
-                                    ${p.daysList.map(d => `
+                                    ${[...p.daysList]
+                                        .sort((a, b) => new Date(b.actualdate + 'T12:00:00') - new Date(a.actualdate + 'T12:00:00'))
+                                        .map(d => `
                                         <tr style="${!d.isBusinessDay ? 'opacity: 0.6; background-color: #fcfcfc;' : ''}">
                                             <td>
                                                 <strong>${new Date(d.actualdate + 'T12:00:00').toLocaleDateString()}</strong>
