@@ -306,14 +306,45 @@ const Visualizer = {
                         <div>
                             <h2 style="margin: 0; font-size: 1.5rem;">${col.name}</h2>
                             <p style="margin: 5px 0 0; color: var(--text-secondary);">
-                                <i class="fas fa-calendar-check"></i> Registro completo de aniversario
+                                <i class="fas fa-history"></i> Historial de vacaciones consolidado
                             </p>
                         </div>
                         <div style="text-align: right;">
-                            <div style="font-size: 0.8rem; text-transform: uppercase; color: var(--text-secondary);">Saldo Disponible</div>
+                            <div style="font-size: 0.8rem; text-transform: uppercase; color: var(--text-secondary);">Saldo General</div>
                             <div style="font-size: 2.5rem; font-weight: 800; color: var(--primary-color); line-height: 1;">${balance.balance} <span style="font-size: 1rem; font-weight: 400;">días</span></div>
                         </div>
                     </div>
+                </div>
+            </div>
+
+            <!-- Resumen de Periodos Superior -->
+            <div class="card" style="margin-bottom: 30px; padding: 20px;">
+                <h3 style="margin: 0 0 15px; font-size: 1.1rem; color: var(--text-primary);">Resumen de Periodos</h3>
+                <div class="table-container">
+                <table class="personnel-table" style="font-size: 0.85rem;">
+                    <thead>
+                        <tr>
+                            <th>Año</th>
+                            <th>Periodo</th>
+                            <th>Activación</th>
+                            <th>Asignados</th>
+                            <th>Usados</th>
+                            <th>Balance</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${balance.periods.map(p => `
+                            <tr>
+                                <td><strong>Año ${p.year}</strong></td>
+                                <td>${p.label}</td>
+                                <td>${new Date(p.activationDate + 'T12:00:00').toLocaleDateString()}</td>
+                                <td>${p.days}</td>
+                                <td style="color: var(--secondary-color); font-weight: 600;">${p.used}</td>
+                                <td><strong style="color: ${p.balance > 0 ? 'var(--success-color)' : 'var(--text-secondary)'}">${p.balance}</strong></td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
                 </div>
             </div>
 
@@ -328,69 +359,50 @@ const Visualizer = {
                 ${[...balance.periods].reverse().map(p => {
                     const progress = (p.used / p.days) * 100;
                     return `
-                    <div class="card period-card" style="padding: 0; overflow: hidden; border: 1px solid var(--border-color);">
-                        <div class="period-header" style="padding: 15px 25px; background-color: #f9f9fb; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center;">
+                    <div class="card period-card" style="padding: 0; overflow: hidden; border: 1px solid var(--border-color); border-left: 5px solid ${p.balance > 0 ? 'var(--primary-color)' : '#cbd5e0'};">
+                        <div class="period-header" style="padding: 20px 25px; background-color: #f9f9fb; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center;">
                             <div>
-                                <span class="badge" style="background-color: var(--primary-color); color: white; padding: 3px 10px; border-radius: 12px; font-size: 0.7rem; margin-right: 10px;">AÑO ${p.year}</span>
-                                <strong style="font-size: 1.1rem;">Periodo ${p.label}</strong>
+                                <h3 style="margin:0;">
+                                    AÑO ${p.year} <small style="font-weight: normal; opacity: 0.6;">(${p.label})</small>
+                                </h3>
+                                <p style="margin:5px 0 0; font-size: 0.75rem; color: var(--text-secondary);">
+                                    Activación legal: <strong>${new Date(p.activationDate + 'T12:00:00').toLocaleDateString()}</strong>
+                                </p>
                             </div>
-                            <div style="font-size: 0.8rem; color: var(--text-secondary);">
-                                <i class="fas fa-info-circle"></i> Vence el ${new Date(p.activationDate).toLocaleDateString()}
+                            <div style="text-align: right;">
+                                <div style="font-size: 0.7rem; text-transform: uppercase; color: var(--text-secondary);">Días Asignados 
+                                    <button class="btn-icon admin-only" onclick="Visualizer.editPeriodDays(${p.year}, ${p.days})" style="display:inline-flex; width:20px; height:20px; padding:0; justify-content:center; align-items:center;"><i class="fas fa-pencil-alt" style="font-size:0.6rem;"></i></button>
+                                </div>
+                                <div style="font-size: 1.5rem; font-weight: 700; color: var(--primary-color);">${p.days}</div>
                             </div>
                         </div>
-                        <div class="period-body" style="padding: 25px;">
-                            <div style="display: grid; grid-template-columns: 1fr 2fr; gap: 30px; margin-bottom: 25px;">
-                                <div class="period-stats">
-                        <div class="card" style="margin-bottom: 25px; border-left: 5px solid var(--primary-color);">
-                            <div class="card-header" style="display: flex; justify-content: space-between; align-items: center; padding-bottom: 15px; border-bottom: 1px solid #eee;">
-                                <div>
-                                    <h3 style="margin:0;">
-                                    <div class="card-header" style="display: flex; justify-content: space-between; align-items: center; padding-bottom: 15px; border-bottom: 1px solid #eee;">
-                                        <div>
-                                            <h3 style="margin:0;">
-                                                Año ${p.year} <small style="font-weight: normal; opacity: 0.6;">(${p.label})</small>
-                                            </h3>
-                                            <p style="margin:5px 0 0; font-size: 0.75rem; color: var(--text-secondary);">
-                                                Periodo de antigüedad. Activación legal: <strong>${new Date(p.activationDate + 'T12:00:00').toLocaleDateString()}</strong>
-                                            </p>
-                                        </div>
-                                        <div style="text-align: right;">
-                                            <div style="font-size: 0.7rem; text-transform: uppercase; color: var(--text-secondary);">Días Asignados 
-                                                <button class="btn-icon admin-only" onclick="Visualizer.editPeriodDays(${p.year}, ${p.days})" style="display:inline-flex; width:20px; height:20px;"><i class="fas fa-pencil-alt" style="font-size:0.6rem;"></i></button>
-                                            </div>
-                                            <div style="font-size: 1.5rem; font-weight: 700; color: var(--primary-color);">${p.days}</div>
-                                        </div>
-                                    </div>
 
-                                    <div style="padding: 20px 0; display: grid; grid-template-columns: 1fr 200px; gap: 30px; align-items: center;">
-                                        <div>
-                                            <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
-                                                <div style="font-size: 0.85rem; font-weight: 600;">Consumo de días hábiles</div>
-                                                <div style="display: flex; gap: 15px;">
-                                                    <div style="font-size: 0.7rem; text-transform: uppercase;">Disponibles</div>
-                                                    <div style="font-size: 1.5rem; font-weight: 700; color: var(--success-color);">${p.balance}</div>
-                                                    <div style="font-size: 0.7rem; text-transform: uppercase;">Usados</div>
-                                                    <div style="font-size: 1.5rem; font-weight: 700; color: var(--secondary-color);">${p.used}</div>
-                                                </div>
-                                            </div>
-                                            <div class="progress-bar" style="height: 8px; background-color: #eee; border-radius: 4px; overflow: hidden;">
-                                                <div style="width: ${progress}%; height: 100%; background-color: var(--secondary-color);"></div>
-                                            </div>
-                                        </div>
-                                        <div style="display:flex; align-items:center; color:var(--text-secondary); font-size:0.85rem; line-height:1.2;">
-                                            Consumo secuencial por antigüedad (FIFO). Se agotan primero los días de este periodo antes de pasar al siguiente.
+                        <div class="period-body" style="padding: 25px;">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                                <div style="flex: 1; max-width: 400px;">
+                                    <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+                                        <div style="font-size: 0.8rem; font-weight: 600;">Consumo del periodo</div>
+                                        <div style="font-size: 0.8rem;">
+                                            <span style="color: var(--success-color); font-weight: 700;">${p.balance} disponibles</span>
                                         </div>
                                     </div>
+                                    <div class="progress-bar" style="height: 6px; background-color: #eee; border-radius: 3px; overflow: hidden;">
+                                        <div style="width: ${progress}%; height: 100%; background-color: var(--secondary-color);"></div>
+                                    </div>
+                                </div>
+                                <div style="color:var(--text-secondary); font-size:0.8rem; font-style: italic;">
+                                    Consumo FIFO por antigüedad
                                 </div>
                             </div>
 
-                            <table class="day-breakdown-table">
+                            <div class="table-container">
+                            <table class="day-breakdown-table" style="margin: 0;">
                                 <thead>
                                     <tr>
-                                        <th style="width: 150px;">Fecha</th>
+                                        <th style="width: 140px;">Fecha</th>
                                         <th>Notas / Observaciones</th>
-                                        <th style="width: 150px;">Periodo Asignado</th>
-                                        <th style="width: 80px;" class="admin-only"></th>
+                                        <th style="width: 180px;">Periodo Asignado</th>
+                                        <th style="width: 50px;" class="admin-only"></th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -398,10 +410,10 @@ const Visualizer = {
                                     ${p.daysList.map(d => `
                                         <tr style="${!d.isBusinessDay ? 'opacity: 0.6; background-color: #fcfcfc;' : ''}">
                                             <td>
-                                                <strong style="${!d.isBusinessDay ? 'color: var(--text-secondary);' : ''}">${new Date(d.actualdate + 'T12:00:00').toLocaleDateString()}</strong>
-                                                ${!d.isBusinessDay ? '<span style="display:block; font-size: 0.65rem; color: #999; font-weight: normal;">(Día no laborable)</span>' : ''}
+                                                <strong>${new Date(d.actualdate + 'T12:00:00').toLocaleDateString()}</strong>
+                                                ${!d.isBusinessDay ? '<span style="display:block; font-size: 0.65rem; color: #999;">(No laborable)</span>' : ''}
                                                 <div class="admin-only" style="margin-top:4px;">
-                                                    <select class="status-select input-field" style="padding:2px; font-size:0.7rem; height:auto" onchange="Visualizer.updateDayStatus('${d.id}', this.value)">
+                                                    <select class="status-select input-field" style="padding:2px; font-size:0.7rem; height:auto; width:100%" onchange="Visualizer.updateDayStatus('${d.id}', this.value)">
                                                         <option value="approved" ${d.status === 'approved' ? 'selected' : ''}>Aprobado</option>
                                                         <option value="programmed" ${d.status === 'programmed' ? 'selected' : ''}>Programado</option>
                                                         <option value="cancelled" ${d.status === 'cancelled' ? 'selected' : ''}>Cancelado</option>
@@ -411,12 +423,12 @@ const Visualizer = {
                                             <td>
                                                 <input type="text" class="note-input admin-only" value="${d.notes || ''}" 
                                                        placeholder="Agregar nota..." 
-                                                       onblur="Visualizer.updateDayNote('${d.id}', this.value)">
+                                                       onblur="Visualizer.updateDayNote('${d.id}', this.value)" style="width: 100%;">
                                                 <span class="guest-only" style="font-size: 0.8rem; color: #666;">${d.notes || ''}</span>
                                             </td>
                                             <td>
                                                 <div class="admin-only">
-                                                    <select class="status-select input-field" style="padding:2px; font-size:0.7rem; height:auto; color: ${d.isManual ? 'var(--primary-color)' : 'inherit'}; font-weight: ${d.isManual ? '600' : 'normal'}" 
+                                                    <select class="status-select input-field" style="padding:2px; font-size:0.7rem; height:auto; width:100%; color: ${d.isManual ? 'var(--primary-color)' : 'inherit'}; font-weight: ${d.isManual ? '600' : 'normal'}" 
                                                         onchange="Visualizer.updateDayPeriod('${d.id}', this.value)">
                                                         <option value="">Auto (FIFO)</option>
                                                         ${balance.periods.map(per => `
@@ -429,7 +441,7 @@ const Visualizer = {
                                                 </div>
                                             </td>
                                             <td class="admin-only">
-                                                <button class="btn-icon delete" onclick="Visualizer.deleteSingleDay('${d.id}')" title="Borrar permanentemente">
+                                                <button class="btn-icon delete" onclick="Visualizer.deleteSingleDay('${d.id}')" title="Borrar">
                                                     <i class="fas fa-times"></i>
                                                 </button>
                                             </td>
@@ -437,6 +449,7 @@ const Visualizer = {
                                     `).join('')}
                                 </tbody>
                             </table>
+                            </div>
                         </div>
                     </div>
                     `;
