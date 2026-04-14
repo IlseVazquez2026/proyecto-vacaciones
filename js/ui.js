@@ -390,14 +390,48 @@ const UIManager = {
     },
 
     normalizeExcelDate(val) {
-        if (!val) return new Date().toISOString().split('T')[0];
-        if (typeof val === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(val)) return val;
+        if (!val) return null;
+        
+        // Si ya es un objeto Date (por cellDates: true)
+        if (val instanceof Date) {
+            if (isNaN(val.getTime())) return null;
+            return val.toISOString().split('T')[0];
+        }
+
+        const str = String(val).trim();
+        if (str === '') return null;
+
+        // 1. Caso: Formato Estandar AAAA-MM-DD
+        if (/^\d{4}-\d{2}-\d{2}$/.test(str)) return str;
+
+        // 2. Caso: Formato Numero de Excel
         if (typeof val === 'number') {
             const date = new Date(Math.round((val - 25569) * 86400 * 1000));
-            return date.toISOString().split('T')[0];
+            return isNaN(date.getTime()) ? null : date.toISOString().split('T')[0];
         }
-        const d = new Date(val);
-        return !isNaN(d.getTime()) ? d.toISOString().split('T')[0] : String(val);
+
+        // 3. Caso: Formato DD/MM/AAAA o DD/MM/AA
+        const dmyMatch = str.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2,4})$/);
+        if (dmyMatch) {
+            let day = parseInt(dmyMatch[1]);
+            let month = parseInt(dmyMatch[2]) - 1;
+            let year = parseInt(dmyMatch[3]);
+            if (year < 100) year += 2000; // Asumir 20xx para años de 2 digitos
+            
+            const date = new Date(year, month, day, 12, 0, 0);
+            if (!isNaN(date.getTime())) return date.toISOString().split('T')[0];
+        }
+
+        // 4. Intento desesperado: Date nativo (Cuidado con local vs UTC)
+        const d = new Date(str);
+        if (!isNaN(d.getTime())) {
+            // Si el string no incluye '/', JS suele tratarlo como UTC. 
+            // Para historial, forzamos mediodia local para evitar saltos de día.
+            const forcedDate = new Date(d.getFullYear(), d.getMonth(), d.getDate(), 12, 0, 0);
+            return forcedDate.toISOString().split('T')[0];
+        }
+
+        return null; // Formato no reconocido
     },
 
     handleDownloadHistoryTemplate() {
@@ -413,7 +447,7 @@ const UIManager = {
         const reader = new FileReader();
         reader.onload = async (e) => {
             try {
-                const workbook = XLSX.read(new Uint8Array(e.target.result), { type: 'array' });
+                const workbook = XLSX.read(new Uint8Array(e.target.result), { type: 'array', cellDates: true });
                 const rows = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]]);
                 if (rows.length === 0) return;
 
@@ -421,18 +455,30 @@ const UIManager = {
 
                 // 1. Agrupar por Empleado
                 const groups = {};
+                let skippedRows = 0;
+
                 rows.forEach(row => {
                     const colid = String(row['ID Empleado'] || row['id'] || row['ID'] || '');
                     const dateRaw = row['Fecha (AAAA-MM-DD)'] || row['fecha'] || row['Fecha'];
                     if (!colid || !dateRaw) return;
 
+                    const cleanDate = this.normalizeExcelDate(dateRaw);
+                    if (!cleanDate) {
+                        skippedRows++;
+                        return;
+                    }
+
                     if (!groups[colid]) groups[colid] = [];
                     groups[colid].push({
-                        date: this.normalizeExcelDate(dateRaw),
+                        date: cleanDate,
                         status: (row['Estatus (approved/cancelled)'] || row['estatus'] || 'approved').toLowerCase(),
                         notes: row['Notas'] || row['notas'] || 'Carga Histórica'
                     });
                 });
+
+                if (skippedRows > 0) {
+                    this.showToast(`Se omitieron ${skippedRows} registros por formato de fecha inválido.`, 'warning');
+                }
 
                 // 2. Procesar cada grupo como una solicitud única
                 let employeesProcessed = 0;

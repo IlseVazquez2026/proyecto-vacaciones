@@ -209,7 +209,9 @@ const VacationManager = {
     },
 
     isBusinessDay(dateStr) {
+        if (!dateStr || dateStr === 'null') return false;
         const date = new Date(dateStr + 'T12:00:00'); // Evitar problemas de zona horaria
+        if (isNaN(date.getTime())) return false;
         const day = date.getDay();
         return day !== 0 && day !== 6; // 0=Domingo, 6=Sábado
     },
