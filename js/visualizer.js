@@ -620,7 +620,7 @@ const Visualizer = {
         const days = parseInt(newVal);
         if (isNaN(days)) return alert('Ingresa un número válido.');
 
-        const colId = this.currentCollaboratorId;
+        const colId = this.selectedColId;
         if (!colId) return;
 
         try {
