@@ -10,12 +10,53 @@ const VacationManager = {
         return StateManager.getVacationRules();
     },
 
+    // Helper para generar un objeto de periodo estandarizado
+    _createPeriod(col, yearNum, rules, today) {
+        const hire = new Date(col.hiredate + 'T12:00:00');
+        const anniversary = new Date(hire);
+        anniversary.setFullYear(hire.getFullYear() + yearNum);
+        
+        const startPeriod = new Date(hire);
+        startPeriod.setFullYear(hire.getFullYear() + yearNum - 1);
+
+        // Determinar legislación aplicable
+        const lawEntry = anniversary >= new Date('2023-01-01') ? 'post2023' : 'pre2023';
+        
+        // Calcular días según tabla o sobrescritura
+        let days = 0;
+        const dayOverrides = typeof col.period_overrides === 'string' 
+            ? JSON.parse(col.period_overrides) 
+            : (col.period_overrides || {});
+
+        if (dayOverrides[yearNum] !== undefined) {
+            days = parseInt(dayOverrides[yearNum]);
+        } else {
+            const currentRules = rules[lawEntry];
+            for (const level of currentRules) {
+                if (yearNum >= level.years) {
+                    days = level.days;
+                } else {
+                    break;
+                }
+            }
+        }
+
+        return {
+            year: yearNum,
+            label: `${startPeriod.getFullYear()}-${anniversary.getFullYear()}`,
+            activationDate: anniversary.toISOString().split('T')[0],
+            days: days,
+            law: lawEntry,
+            isEarned: anniversary <= today,
+            startPeriod: startPeriod // Para utilidad interna
+        };
+    },
+
     // Obtener los periodos de aniversario cumplidos o futuros si hay vacaciones programadas
     getAnniversaryPeriods(colId) {
         const col = StateManager.getCollaboratorById(colId);
         if (!col) return [];
         
-        const hire = new Date(col.hiredate + 'T12:00:00');
         const today = new Date();
         let maxDate = new Date(); // Target cutoff date
         
@@ -29,70 +70,23 @@ const VacationManager = {
         const periods = [];
         const rules = this.getRules();
         
-        // Cargar sobrescrituras manuales si existen (formato: {"1": 15, "2": 18})
-        const dayOverrides = typeof col.period_overrides === 'string' 
-            ? JSON.parse(col.period_overrides) 
-            : (col.period_overrides || {});
-
         let yearNum = 1;
         while (true) {
-            const anniversary = new Date(hire);
-            anniversary.setFullYear(hire.getFullYear() + yearNum);
+            const p = this._createPeriod(col, yearNum, rules, today);
             
-            const startPeriod = new Date(hire);
-            startPeriod.setFullYear(hire.getFullYear() + yearNum - 1);
-
             // Si el inicio del periodo ya superó la fecha máxima de las vacaciones agendadas, dejamos de generar periodos.
-            if (startPeriod > maxDate) {
+            if (p.startPeriod > maxDate) {
                 break;
             }
             
-            // Determinar legislación aplicable
-            const lawEntry = anniversary >= new Date('2023-01-01') ? 'post2023' : 'pre2023';
-            
-            // Calcular días según tabla o sobrescritura
-            let days = 0;
-            if (dayOverrides[yearNum] !== undefined) {
-                days = parseInt(dayOverrides[yearNum]);
-            } else {
-                const currentRules = rules[lawEntry];
-                for (const level of currentRules) {
-                    if (yearNum >= level.years) {
-                        days = level.days;
-                    } else {
-                        break;
-                    }
-                }
-            }
-            
-            periods.push({
-                year: yearNum,
-                label: `${startPeriod.getFullYear()}-${anniversary.getFullYear()}`,
-                activationDate: anniversary.toISOString().split('T')[0],
-                days: days,
-                law: lawEntry,
-                isEarned: anniversary <= today
-            });
-            
+            periods.push(p);
             yearNum++;
             if (yearNum > 50) break;
         }
         
         // Asegurar primer periodo si no hay nada
         if (periods.length === 0) {
-            const anniversary = new Date(hire);
-            anniversary.setFullYear(hire.getFullYear() + 1);
-            const lawEntry = anniversary >= new Date('2023-01-01') ? 'post2023' : 'pre2023';
-            let days = dayOverrides[1] !== undefined ? parseInt(dayOverrides[1]) : rules[lawEntry][0].days;
-            
-            periods.push({ 
-                year: 1, 
-                label: `${hire.getFullYear()}-${anniversary.getFullYear()}`, 
-                activationDate: anniversary.toISOString().split('T')[0], 
-                days, 
-                law: lawEntry,
-                isEarned: anniversary <= today
-            });
+            periods.push(this._createPeriod(col, 1, rules, today));
         }
         
         return periods;
@@ -156,6 +150,39 @@ const VacationManager = {
             p.used = p.daysList.length;
             p.balance = p.days - p.used;
         });
+
+        // --- EXTENSIÓN DINÁMICA DE PERIODOS ---
+        // Si todavía hay días en el pool (sobregiro o carga masiva grande), generamos años extra
+        const rules = this.getRules();
+        const today = new Date();
+        let lastYearNum = periodsWithConsumption.length > 0 
+            ? periodsWithConsumption[periodsWithConsumption.length - 1].year 
+            : 0;
+
+        while (fifoIndex < fifoPool.length && lastYearNum < 50) {
+            lastYearNum++;
+            const newPeriod = this._createPeriod(col, lastYearNum, rules, today);
+            const daysInThisPeriod = [];
+            let capacityLeft = newPeriod.days;
+
+            while (capacityLeft > 0 && fifoIndex < fifoPool.length) {
+                const currentDay = fifoPool[fifoIndex];
+                daysInThisPeriod.push({
+                    ...currentDay,
+                    isBusinessDay: this.isBusinessDay(currentDay.actualdate),
+                    isManual: false
+                });
+                fifoIndex++;
+                capacityLeft--;
+            }
+
+            periodsWithConsumption.push({
+                ...newPeriod,
+                daysList: daysInThisPeriod,
+                used: daysInThisPeriod.length,
+                balance: newPeriod.days - daysInThisPeriod.length
+            });
+        }
 
         const requests = StateManager.getVacationRequests(colId).map(req => {
             const reqDays = allDays.filter(d => d.requestid === req.id);
