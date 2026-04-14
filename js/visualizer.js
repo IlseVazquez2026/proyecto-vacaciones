@@ -399,27 +399,38 @@ const Visualizer = {
                             <table class="day-breakdown-table" style="margin: 0;">
                                 <thead>
                                     <tr>
-                                        <th style="width: 140px;">Fecha</th>
+                                        <th style="width: 160px;">Fecha</th>
+                                        <th style="width: 140px;">Estatus</th>
                                         <th>Notas / Observaciones</th>
-                                        <th style="width: 180px;">Periodo Asignado</th>
+                                        <th style="width: 160px;">Periodo Asignado</th>
                                         <th style="width: 50px;" class="admin-only"></th>
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    ${p.daysList.length === 0 ? '<tr><td colspan="4" style="text-align:center; padding:15px; opacity:0.5;">Sin días consumidos de este periodo.</td></tr>' : ''}
+                                    ${p.daysList.length === 0 ? '<tr><td colspan="5" style="text-align:center; padding:15px; opacity:0.5;">Sin días consumidos de este periodo.</td></tr>' : ''}
                                     ${[...p.daysList]
                                         .sort((a, b) => new Date(b.actualdate + 'T12:00:00') - new Date(a.actualdate + 'T12:00:00'))
                                         .map(d => `
                                         <tr style="${!d.isBusinessDay ? 'opacity: 0.6; background-color: #fcfcfc;' : ''}">
-                                            <td>
-                                                <strong>${new Date(d.actualdate + 'T12:00:00').toLocaleDateString()}</strong>
+                                            <td style="white-space: nowrap;">
+                                                <div style="display: flex; align-items: center; gap: 8px;">
+                                                    <strong>${new Date(d.actualdate + 'T12:00:00').toLocaleDateString()}</strong>
+                                                    <button class="btn-icon admin-only" onclick="Visualizer.editDayDate('${d.id}', '${d.actualdate}')" style="width:20px; height:20px;" title="Editar Fecha">
+                                                        <i class="fas fa-pencil-alt" style="font-size:0.6rem;"></i>
+                                                    </button>
+                                                </div>
                                                 ${!d.isBusinessDay ? '<span style="display:block; font-size: 0.65rem; color: #999;">(No laborable)</span>' : ''}
-                                                <div class="admin-only" style="margin-top:4px;">
-                                                    <select class="status-select input-field" style="padding:2px; font-size:0.7rem; height:auto; width:100%" onchange="Visualizer.updateDayStatus('${d.id}', this.value)">
+                                            </td>
+                                            <td>
+                                                <div class="admin-only">
+                                                    <select class="status-select input-field" style="padding:2px; font-size:0.75rem; height:auto; width:100%" onchange="Visualizer.updateDayStatus('${d.id}', this.value)">
                                                         <option value="approved" ${d.status === 'approved' ? 'selected' : ''}>Aprobado</option>
                                                         <option value="programmed" ${d.status === 'programmed' ? 'selected' : ''}>Programado</option>
                                                         <option value="cancelled" ${d.status === 'cancelled' ? 'selected' : ''}>Cancelado</option>
                                                     </select>
+                                                </div>
+                                                <div class="guest-only">
+                                                    <span class="status-pill pill-${d.status}" style="font-size: 0.65rem;">${d.status.toUpperCase()}</span>
                                                 </div>
                                             </td>
                                             <td>
@@ -430,7 +441,7 @@ const Visualizer = {
                                             </td>
                                             <td>
                                                 <div class="admin-only">
-                                                    <select class="status-select input-field" style="padding:2px; font-size:0.7rem; height:auto; width:100%; color: ${d.isManual ? 'var(--primary-color)' : 'inherit'}; font-weight: ${d.isManual ? '600' : 'normal'}" 
+                                                    <select class="status-select input-field" style="padding:2px; font-size:0.75rem; height:auto; width:100%; color: ${d.isManual ? 'var(--primary-color)' : 'inherit'}; font-weight: ${d.isManual ? '600' : 'normal'}" 
                                                         onchange="Visualizer.updateDayPeriod('${d.id}', this.value)">
                                                         <option value="">Auto (FIFO)</option>
                                                         ${balance.periods.map(per => `
@@ -611,6 +622,27 @@ const Visualizer = {
             this.renderDashboard();
         } catch (err) {
             UIManager.showToast('Error: ' + err.message, 'error');
+        }
+    },
+
+    async editDayDate(dayId, currentDate) {
+        const newDate = prompt('Ingresa la nueva fecha para este día (formato AAAA-MM-DD):', currentDate);
+        if (newDate === null || newDate === '' || newDate === currentDate) return;
+
+        // Validar formato básico
+        const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+        if (!dateRegex.test(newDate)) {
+            return alert('Formato de fecha inválido. Usa AAAA-MM-DD.');
+        }
+
+        try {
+            await StateManager.updateVacationDay(dayId, { actualdate: newDate });
+            UIManager.showToast('Fecha actualizada correctamente', 'success');
+            this.renderHistory();
+            this.renderCalendar();
+            this.renderDashboard();
+        } catch (err) {
+            UIManager.showToast('Error al actualizar: ' + err.message, 'error');
         }
     }
 };
