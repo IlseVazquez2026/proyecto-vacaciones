@@ -29,6 +29,11 @@ const VacationManager = {
         const periods = [];
         const rules = this.getRules();
         
+        // Cargar sobrescrituras manuales si existen (formato: {"1": 15, "2": 18})
+        const dayOverrides = typeof col.period_overrides === 'string' 
+            ? JSON.parse(col.period_overrides) 
+            : (col.period_overrides || {});
+
         let yearNum = 1;
         while (true) {
             const anniversary = new Date(hire);
@@ -45,14 +50,18 @@ const VacationManager = {
             // Determinar legislación aplicable
             const lawEntry = anniversary >= new Date('2023-01-01') ? 'post2023' : 'pre2023';
             
-            // Calcular días según tabla
-            const currentRules = rules[lawEntry];
+            // Calcular días según tabla o sobrescritura
             let days = 0;
-            for (const level of currentRules) {
-                if (yearNum >= level.years) {
-                    days = level.days;
-                } else {
-                    break;
+            if (dayOverrides[yearNum] !== undefined) {
+                days = parseInt(dayOverrides[yearNum]);
+            } else {
+                const currentRules = rules[lawEntry];
+                for (const level of currentRules) {
+                    if (yearNum >= level.years) {
+                        days = level.days;
+                    } else {
+                        break;
+                    }
                 }
             }
             
@@ -62,19 +71,19 @@ const VacationManager = {
                 activationDate: anniversary.toISOString().split('T')[0],
                 days: days,
                 law: lawEntry,
-                isEarned: anniversary <= today // La clave: ¿Ya se cumplió el aniversario?
+                isEarned: anniversary <= today
             });
             
             yearNum++;
             if (yearNum > 50) break;
         }
         
-        // Asegurar que si el empleado tiene menos de 1 año, al menos se muestre su primer periodo como pendiente
+        // Asegurar primer periodo si no hay nada
         if (periods.length === 0) {
             const anniversary = new Date(hire);
             anniversary.setFullYear(hire.getFullYear() + 1);
             const lawEntry = anniversary >= new Date('2023-01-01') ? 'post2023' : 'pre2023';
-            let days = rules[lawEntry][0].days;
+            let days = dayOverrides[1] !== undefined ? parseInt(dayOverrides[1]) : rules[lawEntry][0].days;
             
             periods.push({ 
                 year: 1, 
@@ -94,11 +103,9 @@ const VacationManager = {
         const col = StateManager.getCollaboratorById(colId);
         if (!col) return null;
 
-        // 1. Obtener todos los periodos posibles
         const periods = this.getAnniversaryPeriods(colId);
-        const totalAssigned = periods.reduce((acc, p) => acc + p.days, 0); // Todos los días asignados
+        const totalAssigned = periods.reduce((acc, p) => acc + p.days, 0);
         
-        // 2. Obtener todos los días consumidos (Aprobados/Programados) ordenados cronológicamente
         const allDays = StateManager.getVacationDays(colId);
         const activeDaysPool = allDays
             .filter(d => (d.status === 'approved' || d.status === 'programmed') && this.isBusinessDay(d.actualdate))
@@ -106,28 +113,47 @@ const VacationManager = {
 
         const totalUsed = activeDaysPool.length;
 
-        // 3. LOGICA FIFO: Llenar los periodos con los días consumidos en orden
-        let dayIndex = 0;
+        // --- LÓGICA DE ASIGNACIÓN MIXTA (MANUAL + FIFO) ---
+        
+        // 1. Identificar días con asignación manual (period_override)
+        const manualDays = activeDaysPool.filter(d => d.period_override);
+        const fifoPool = activeDaysPool.filter(d => !d.period_override);
+
         const periodsWithConsumption = periods.map(p => {
             const daysInThisPeriod = [];
-            const capacity = p.days;
             
-            // Consumir del pool hasta agotar la capacidad del periodo o los días disponibles
-            while (daysInThisPeriod.length < capacity && dayIndex < activeDaysPool.length) {
-                daysInThisPeriod.push({
-                    ...activeDaysPool[dayIndex],
-                    isBusinessDay: true
-                });
-                dayIndex++;
-            }
+            // A. Primero agregar los días asignados MANUALMENTE a este año
+            const myManualDays = manualDays.filter(d => parseInt(d.period_override) === p.year);
+            daysInThisPeriod.push(...myManualDays.map(d => ({ ...d, isBusinessDay: true, isManual: true })));
 
-            const usedCount = daysInThisPeriod.length;
+            // B. Luego llenar el espacio restante con el FIFO Pool
+            const capacityLeft = p.days - daysInThisPeriod.length;
+            let filled = 0;
+            
+            // Usamos un loop para sacar días del fifoPool de forma destructiva o controlada
+            // Nota: Para simplicidad, usaremos un puntero externo si quisiéramos persistir el estado entre periodos.
+            // Pero aquí procesamos todos los periodos. Necesitamos que el fifoPool se vaya vaciando.
             return {
                 ...p,
-                used: usedCount,
-                balance: p.days - usedCount,
-                daysList: daysInThisPeriod
+                daysList: daysInThisPeriod, // Temporal, se terminará de llenar abajo
+                capacityLeft: capacityLeft
             };
+        });
+
+        // Loop real de llenado FIFO
+        let fifoIndex = 0;
+        periodsWithConsumption.forEach(p => {
+            while (p.capacityLeft > 0 && fifoIndex < fifoPool.length) {
+                p.daysList.push({
+                    ...fifoPool[fifoIndex],
+                    isBusinessDay: true,
+                    isManual: false
+                });
+                fifoIndex++;
+                p.capacityLeft--;
+            }
+            p.used = p.daysList.length;
+            p.balance = p.days - p.used;
         });
 
         const requests = StateManager.getVacationRequests(colId).map(req => {

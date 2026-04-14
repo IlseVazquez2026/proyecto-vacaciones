@@ -345,48 +345,56 @@ const Visualizer = {
                             <div class="card-header" style="display: flex; justify-content: space-between; align-items: center; padding-bottom: 15px; border-bottom: 1px solid #eee;">
                                 <div>
                                     <h3 style="margin:0;">
-                                        Año ${p.year} <small style="font-weight: normal; opacity: 0.6;">(${p.label})</small>
-                                    </h3>
-                                    <p style="margin:5px 0 0; font-size: 0.75rem; color: var(--text-secondary);">
-                                        Periodo de antigüedad. Activación legal: <strong>${new Date(p.activationDate + 'T12:00:00').toLocaleDateString()}</strong>
-                                    </p>
-                                </div>
-                                <div style="text-align: right;">
-                                    <div style="font-size: 0.7rem; text-transform: uppercase; color: var(--text-secondary);">Días Asignados</div>
-                                    <div style="font-size: 1.5rem; font-weight: 700; color: var(--primary-color);">${p.days}</div>
-                                </div>
-                            </div>
-
-                            <div style="padding: 20px 0; display: grid; grid-template-columns: 1fr 200px; gap: 30px; align-items: center;">
-                                <div>
-                                    <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
-                                        <div style="font-size: 0.85rem; font-weight: 600;">Consumo de días hábiles</div>
-                                        <div style="display: flex; gap: 15px;">
-                                            <div style="font-size: 0.7rem; text-transform: uppercase;">Disponibles</div>
-                                            <div style="font-size: 1.5rem; font-weight: 700; color: var(--success-color);">${p.balance}</div>
-                                            <div style="font-size: 0.7rem; text-transform: uppercase;">Usados</div>
-                                            <div style="font-size: 1.5rem; font-weight: 700; color: var(--secondary-color);">${p.used}</div>
+                                    <div class="card-header" style="display: flex; justify-content: space-between; align-items: center; padding-bottom: 15px; border-bottom: 1px solid #eee;">
+                                        <div>
+                                            <h3 style="margin:0;">
+                                                Año ${p.year} <small style="font-weight: normal; opacity: 0.6;">(${p.label})</small>
+                                            </h3>
+                                            <p style="margin:5px 0 0; font-size: 0.75rem; color: var(--text-secondary);">
+                                                Periodo de antigüedad. Activación legal: <strong>${new Date(p.activationDate + 'T12:00:00').toLocaleDateString()}</strong>
+                                            </p>
+                                        </div>
+                                        <div style="text-align: right;">
+                                            <div style="font-size: 0.7rem; text-transform: uppercase; color: var(--text-secondary);">Días Asignados 
+                                                <button class="btn-icon admin-only" onclick="Visualizer.editPeriodDays(${p.year}, ${p.days})" style="display:inline-flex; width:20px; height:20px;"><i class="fas fa-pencil-alt" style="font-size:0.6rem;"></i></button>
+                                            </div>
+                                            <div style="font-size: 1.5rem; font-weight: 700; color: var(--primary-color);">${p.days}</div>
                                         </div>
                                     </div>
-                                    <div class="progress-bar" style="height: 8px; background-color: #eee; border-radius: 4px; overflow: hidden;">
-                                        <div style="width: ${progress}%; height: 100%; background-color: var(--secondary-color);"></div>
+
+                                    <div style="padding: 20px 0; display: grid; grid-template-columns: 1fr 200px; gap: 30px; align-items: center;">
+                                        <div>
+                                            <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+                                                <div style="font-size: 0.85rem; font-weight: 600;">Consumo de días hábiles</div>
+                                                <div style="display: flex; gap: 15px;">
+                                                    <div style="font-size: 0.7rem; text-transform: uppercase;">Disponibles</div>
+                                                    <div style="font-size: 1.5rem; font-weight: 700; color: var(--success-color);">${p.balance}</div>
+                                                    <div style="font-size: 0.7rem; text-transform: uppercase;">Usados</div>
+                                                    <div style="font-size: 1.5rem; font-weight: 700; color: var(--secondary-color);">${p.used}</div>
+                                                </div>
+                                            </div>
+                                            <div class="progress-bar" style="height: 8px; background-color: #eee; border-radius: 4px; overflow: hidden;">
+                                                <div style="width: ${progress}%; height: 100%; background-color: var(--secondary-color);"></div>
+                                            </div>
+                                        </div>
+                                        <div style="display:flex; align-items:center; color:var(--text-secondary); font-size:0.85rem; line-height:1.2;">
+                                            Consumo secuencial por antigüedad (FIFO). Se agotan primero los días de este periodo antes de pasar al siguiente.
+                                        </div>
                                     </div>
                                 </div>
-                                <div style="display:flex; align-items:center; color:var(--text-secondary); font-size:0.85rem; line-height:1.2;">
-                                    Consumo secuencial por antigüedad (FIFO). Se agotan primero los días de este periodo antes de pasar al siguiente.
-                                </div>
-                            </div>      </div>
+                            </div>
 
                             <table class="day-breakdown-table">
                                 <thead>
                                     <tr>
                                         <th style="width: 150px;">Fecha</th>
                                         <th>Notas / Observaciones</th>
-                                        <th style="width: 100px;" class="admin-only"></th>
+                                        <th style="width: 150px;">Periodo Asignado</th>
+                                        <th style="width: 80px;" class="admin-only"></th>
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    ${p.daysList.length === 0 ? '<tr><td colspan="3" style="text-align:center; padding:15px; opacity:0.5;">Sin días consumidos de este periodo.</td></tr>' : ''}
+                                    ${p.daysList.length === 0 ? '<tr><td colspan="4" style="text-align:center; padding:15px; opacity:0.5;">Sin días consumidos de este periodo.</td></tr>' : ''}
                                     ${p.daysList.map(d => `
                                         <tr style="${!d.isBusinessDay ? 'opacity: 0.6; background-color: #fcfcfc;' : ''}">
                                             <td>
@@ -399,15 +407,26 @@ const Visualizer = {
                                                         <option value="cancelled" ${d.status === 'cancelled' ? 'selected' : ''}>Cancelado</option>
                                                     </select>
                                                 </div>
-                                                <div class="guest-only" style="margin-top:2px;">
-                                                    <span class="status-pill pill-${d.status}" style="font-size: 0.6rem; padding: 2px 6px;">${d.status.toUpperCase()}</span>
-                                                </div>
                                             </td>
                                             <td>
                                                 <input type="text" class="note-input admin-only" value="${d.notes || ''}" 
                                                        placeholder="Agregar nota..." 
                                                        onblur="Visualizer.updateDayNote('${d.id}', this.value)">
                                                 <span class="guest-only" style="font-size: 0.8rem; color: #666;">${d.notes || ''}</span>
+                                            </td>
+                                            <td>
+                                                <div class="admin-only">
+                                                    <select class="status-select input-field" style="padding:2px; font-size:0.7rem; height:auto; color: ${d.isManual ? 'var(--primary-color)' : 'inherit'}; font-weight: ${d.isManual ? '600' : 'normal'}" 
+                                                        onchange="Visualizer.updateDayPeriod('${d.id}', this.value)">
+                                                        <option value="">Auto (FIFO)</option>
+                                                        ${balance.periods.map(per => `
+                                                            <option value="${per.year}" ${parseInt(d.period_override) === per.year ? 'selected' : ''}>Año ${per.year}</option>
+                                                        `).join('')}
+                                                    </select>
+                                                </div>
+                                                <div class="guest-only" style="font-size: 0.75rem;">
+                                                    ${d.period_override ? 'Año ' + d.period_override : 'Automático'}
+                                                </div>
                                             </td>
                                             <td class="admin-only">
                                                 <button class="btn-icon delete" onclick="Visualizer.deleteSingleDay('${d.id}')" title="Borrar permanentemente">
@@ -535,6 +554,49 @@ const Visualizer = {
                 </td>
             </tr>
         `).join('');
+    },
+
+    async editPeriodDays(year, currentDays) {
+        const newVal = prompt(`Editar días asignados para el Año ${year}:`, currentDays);
+        if (newVal === null || newVal === '') return;
+
+        const days = parseInt(newVal);
+        if (isNaN(days)) return alert('Ingresa un número válido.');
+
+        const colId = this.currentCollaboratorId;
+        if (!colId) return;
+
+        try {
+            const col = StateManager.getCollaboratorById(colId);
+            const overrides = typeof col.period_overrides === 'string' 
+                ? JSON.parse(col.period_overrides) 
+                : (col.period_overrides || {});
+
+            overrides[year] = days;
+            
+            await StateManager.saveCollaborator({
+                ...col,
+                period_overrides: JSON.stringify(overrides)
+            });
+
+            UIManager.showToast(`Días del Año ${year} actualizados a ${days}`, 'success');
+            this.renderHistory();
+            this.renderDashboard();
+        } catch (err) {
+            UIManager.showToast('Error: ' + err.message, 'error');
+        }
+    },
+
+    async updateDayPeriod(dayId, year) {
+        try {
+            const val = year === "" ? null : parseInt(year);
+            await StateManager.updateVacationDay(dayId, { period_override: val });
+            UIManager.showToast('Asignación de periodo actualizada', 'success');
+            this.renderHistory();
+            this.renderDashboard();
+        } catch (err) {
+            UIManager.showToast('Error: ' + err.message, 'error');
+        }
     }
 };
 
