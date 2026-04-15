@@ -36,8 +36,7 @@ const StateManager = {
                     const { data, error } = await supabase
                         .from(tableName)
                         .select('*')
-                        .range(from, to)
-                        .order('lastupdate', { ascending: false }); // Priorizar recientes si algo falla
+                        .range(from, to);
 
                     if (error) throw error;
                     
