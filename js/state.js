@@ -1,30 +1,6 @@
 /**
- * state.js - Manejo del estado centralizado con Almacenamiento Local (Offline)
- * Sin dependencias de Supabase o bases de datos en la nube.
+ * state.js - Manejo del estado centralizado con Supabase Cloud
  */
-
-const LocalDB = {
-    getKey(table) {
-        return `vacaciones_db_${table}`;
-    },
-    read(table) {
-        try {
-            const dataStr = localStorage.getItem(this.getKey(table));
-            return dataStr ? JSON.parse(dataStr) : [];
-        } catch (e) {
-            console.error(`Error leyendo tabla ${table} de LocalStorage`, e);
-            return [];
-        }
-    },
-    write(table, data) {
-        try {
-            localStorage.setItem(this.getKey(table), JSON.stringify(data));
-        } catch (e) {
-            console.error(`Error guardando tabla ${table} en LocalStorage (Limpiar caché o excedió límite)`, e);
-            throw new Error(`Memoria llena. No se pudo guardar en ${table}.`);
-        }
-    }
-};
 
 const StateManager = {
     data: {
@@ -47,49 +23,48 @@ const StateManager = {
 
     async init() {
         try {
-            console.log("StateManager: Iniciando sincronización con Base de Datos Local (OFFLINE)...");
+            console.log("StateManager: Iniciando sincronización con Supabase (Límite 20k)...");
             
-            // Cargar Tablas desde LocalStorage
-            this.data.collaborators = LocalDB.read('collaborators');
-            this.data.users = LocalDB.read('users');
-            this.data.vacationrequests = LocalDB.read('vacation_requests');
-            this.data.vacationdays = LocalDB.read('vacation_days');
+            // ACLARACIÓN: Solicitamos hasta 20,000 registros para evitar el truncamiento de PostgREST
+            const [
+                { data: collaborators },
+                { data: users },
+                { data: vacationrequests },
+                { data: vacationdays }
+            ] = await Promise.all([
+                supabase.from('collaborators').select('*').limit(20000),
+                supabase.from('users').select('*').limit(20000),
+                supabase.from('vacation_requests').select('*').limit(20000),
+                supabase.from('vacation_days').select('*').limit(20000)
+            ]);
 
-            // Crear usuario administrador por defecto si es la primera vez
-            if (this.data.users.length === 0) {
-                const defaultAdmin = {
-                    id: 'admin_default',
-                    name: 'Administrador Local',
-                    username: 'admin',
-                    password: '123',
-                    role: 'admin',
-                    status: 'active',
-                    lastupdate: new Date().toISOString()
-                };
-                this.data.users.push(defaultAdmin);
-                LocalDB.write('users', this.data.users);
-            }
+            this.data.collaborators = collaborators || [];
+            this.data.users = users || [];
+            this.data.vacationrequests = vacationrequests || [];
+            this.data.vacationdays = vacationdays || [];
 
-            // Restaurar sesión de usuario (si existe localmente)
+            // Restaurar sesión de usuario (si existe)
             const savedUser = localStorage.getItem('vacaciones_user_session');
             if (savedUser) {
                 this.data.currentUser = JSON.parse(savedUser);
             }
 
-            console.log("StateManager: Datos locales cargados y unificados correctamente.");
+            console.log("StateManager: Datos sincronizados correctamente.");
             return true;
         } catch (error) {
-            console.error("Error al inicializar StateManager Local:", error);
+            console.error("Error al inicializar StateManager:", error);
             throw error;
         }
     },
 
     // --- AUTH METHODS ---
     async login(username, password) {
-        // Simular latencia de red para evitar que la UI parpadee muy rápido si hubiera loaders
-        await new Promise(r => setTimeout(r, 100)); 
-        
-        const user = this.data.users.find(u => u.username === username && u.password === password);
+        const { data: user, error } = await supabase
+            .from('users')
+            .select('*')
+            .eq('username', username)
+            .eq('password', password)
+            .single();
 
         if (user) {
             if (user.status === 'suspended') throw new Error('Cuenta suspendida.');
@@ -115,25 +90,14 @@ const StateManager = {
 
     async saveUser(userData) {
         const id = userData.id || Date.now().toString();
-        const payload = { ...userData, id };
-        
-        let users = LocalDB.read('users');
-        const existingIdx = users.findIndex(u => u.id === id);
-        
-        if (existingIdx > -1) {
-            users[existingIdx] = payload;
-        } else {
-            users.push(payload);
-        }
-        
-        LocalDB.write('users', users);
-        await this.init(); // Refrescar cache
+        const { error } = await supabase.from('users').upsert({ ...userData, id });
+        if (error) throw error;
+        await this.init();
     },
 
     async deleteUser(id) {
-        let users = LocalDB.read('users');
-        users = users.filter(u => u.id !== id);
-        LocalDB.write('users', users);
+        const { error } = await supabase.from('users').delete().eq('id', id);
+        if (error) throw error;
         await this.init();
     },
 
@@ -157,65 +121,35 @@ const StateManager = {
         const now = new Date().toISOString();
         const payload = { ...collaborator, lastupdate: now };
         
-        let list = LocalDB.read('collaborators');
-        
         if (oldId && oldId !== payload.id) {
-            list = list.filter(c => c.id !== oldId);
+            await supabase.from('collaborators').delete().eq('id', oldId);
         }
 
-        const existingIdx = list.findIndex(c => c.id === payload.id);
-        if (existingIdx > -1) {
-            list[existingIdx] = payload;
-        } else {
-            list.push(payload);
-        }
-        
-        LocalDB.write('collaborators', list);
+        const { error } = await supabase.from('collaborators').upsert(payload);
+        if (error) throw error;
         await this.init();
         return true;
     },
 
     async bulkSaveCollaborators(newList) {
         const now = new Date().toISOString();
-        // Generar un mapa para reemplazar o insertar rápidamente
-        let list = LocalDB.read('collaborators');
-        
-        newList.forEach(c => {
-            const payload = { ...c, lastupdate: now };
-            const existingIdx = list.findIndex(exist => exist.id === payload.id);
-            if (existingIdx > -1) {
-                list[existingIdx] = payload;
-            } else {
-                list.push(payload);
-            }
-        });
-        
-        LocalDB.write('collaborators', list);
+        const payloads = newList.map(c => ({ ...c, lastupdate: now }));
+        const { error } = await supabase.from('collaborators').upsert(payloads);
+        if (error) throw error;
         await this.init();
         return true;
     },
 
     async deleteCollaborator(id) {
-        // ELIMINACIÓN DEFINITIVA (HARD DELETE) LOCAL
         try {
-            // 1. Borrar días individuales
-            let days = LocalDB.read('vacation_days');
-            days = days.filter(d => d.collaboratorid !== id);
-            LocalDB.write('vacation_days', days);
-            
-            // 2. Borrar solicitudes de vacaciones
-            let requests = LocalDB.read('vacation_requests');
-            requests = requests.filter(r => r.collaboratorid !== id);
-            LocalDB.write('vacation_requests', requests);
-            
-            // 3. Borrar el colaborador
-            let cols = LocalDB.read('collaborators');
-            cols = cols.filter(c => c.id !== id);
-            LocalDB.write('collaborators', cols);
-            
+            // ELIMINACIÓN DEFINITIVA (HARD DELETE)
+            await supabase.from('vacation_days').delete().eq('collaboratorid', id);
+            await supabase.from('vacation_requests').delete().eq('collaboratorid', id);
+            const { error } = await supabase.from('collaborators').delete().eq('id', id);
+            if (error) throw error;
             await this.init();
         } catch (err) {
-            console.error('Error en eliminación definitiva local:', err);
+            console.error('Error en eliminación definitiva:', err);
             throw err;
         }
     },
@@ -249,66 +183,40 @@ const StateManager = {
     },
 
     async saveVacationRequest(request, daysArr) {
-        const reqid = request.id || 'req-' + Date.now() + '-' + Math.floor(Math.random()*1000);
+        const reqid = request.id || 'req-' + Date.now();
         const now = new Date().toISOString();
 
-        // 1. Guardar Cabecera
-        let requestsList = LocalDB.read('vacation_requests');
-        const reqPayload = { ...request, id: reqid, lastupdate: now };
-        const reqIdx = requestsList.findIndex(r => r.id === reqid);
-        if (reqIdx > -1) {
-            requestsList[reqIdx] = reqPayload;
-        } else {
-            requestsList.push(reqPayload);
-        }
-        LocalDB.write('vacation_requests', requestsList);
+        const { error: reqErr } = await supabase.from('vacation_requests').upsert({
+            ...request, id: reqid, lastupdate: now
+        });
+        if (reqErr) throw reqErr;
 
-        // 2. Guardar Días
-        let daysList = LocalDB.read('vacation_days');
-        const mappedDays = daysArr.map(d => ({
+        const daysPayload = daysArr.map(d => ({
             ...d, 
             id: d.id || `d-${Math.random().toString(36).substr(2, 9)}`,
             requestid: reqid,
             lastupdate: now
         }));
 
-        mappedDays.forEach(md => {
-            const dIdx = daysList.findIndex(x => x.id === md.id);
-            if (dIdx > -1) {
-                daysList[dIdx] = md;
-            } else {
-                daysList.push(md);
-            }
-        });
-        LocalDB.write('vacation_days', daysList);
+        const { error: daysErr } = await supabase.from('vacation_days').upsert(daysPayload);
+        if (daysErr) throw daysErr;
 
         await this.init();
         return reqid;
     },
 
     async updateVacationDay(dayId, updates) {
-        let daysList = LocalDB.read('vacation_days');
-        const dIdx = daysList.findIndex(d => d.id === dayId);
-        
-        if (dIdx > -1) {
-            daysList[dIdx] = { ...daysList[dIdx], ...updates, lastupdate: new Date().toISOString() };
-            LocalDB.write('vacation_days', daysList);
-            await this.init();
-        } else {
-            throw new Error('Día no encontrado localmente');
-        }
+        const { error } = await supabase.from('vacation_days')
+            .update({ ...updates, lastupdate: new Date().toISOString() })
+            .eq('id', dayId);
+        if (error) throw error;
+        await this.init();
     },
 
     async deleteVacationRequest(reqid) {
-        let reqs = LocalDB.read('vacation_requests');
-        reqs = reqs.filter(r => r.id !== reqid);
-        LocalDB.write('vacation_requests', reqs);
-
-        // Opcional: También borrar los días asociados a esta solicitud en Cascada
-        let days = LocalDB.read('vacation_days');
-        days = days.filter(d => d.requestid !== reqid);
-        LocalDB.write('vacation_days', days);
-
+        await supabase.from('vacation_requests').delete().eq('id', reqid);
+        // Supabase debería borrar cascada si está configurado, o borramos manual:
+        await supabase.from('vacation_days').delete().eq('requestid', reqid);
         await this.init();
     },
 
