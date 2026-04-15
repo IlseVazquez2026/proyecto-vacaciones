@@ -202,9 +202,9 @@ const Visualizer = {
         today.setHours(0,0,0,0);
 
         const futureDays = days.filter(d => {
-            const date = new Date(d.actualdate);
+            const date = new Date(d.actualdate + 'T12:00:00');
             return date >= today && (d.status === 'approved' || d.status === 'programmed');
-        }).sort((a,b) => new Date(a.actualdate) - new Date(b.actualdate));
+        }).sort((a,b) => new Date(a.actualdate + 'T12:00:00') - new Date(b.actualdate + 'T12:00:00'));
 
         const uniqueRequests = [...new Set(futureDays.map(d => d.requestid))].slice(0, 5);
 
@@ -217,7 +217,7 @@ const Visualizer = {
             const req = StateManager.data.vacationrequests.find(r => r.id === reqId);
             const col = StateManager.getCollaboratorById(req.collaboratorid);
             const firstDay = futureDays.find(d => d.requestid === reqId);
-            const startDate = new Date(firstDay.actualdate);
+            const startDate = new Date(firstDay.actualdate + 'T12:00:00');
             
             return `
                 <div class="upcoming-item">
@@ -227,7 +227,7 @@ const Visualizer = {
                     </div>
                     <div class="upcoming-info">
                         <div style="font-weight:600;">${col ? col.name : 'Desconocido'}</div>
-                        <div style="font-size:0.75rem; color:var(--text-secondary);">${req.dayscount} días hábiles</div>
+                        <div style="font-size:0.75rem; color:var(--text-secondary);">${req.dayscount} días en este periodo</div>
                     </div>
                 </div>
             `;
