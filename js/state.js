@@ -23,67 +23,72 @@ const StateManager = {
 
     async init() {
         try {
-            console.log("StateManager: Iniciando sincronización recursiva con Supabase...");
+            console.log("StateManager: Iniciando sincronización con Supabase Cloud...");
             
-            // Función helper para traer todas las filas paginando de 1000 en 1000
-            const fetchAllRows = async (tableName) => {
-                let allData = [];
-                let from = 0;
-                let to = 999;
-                let hasMore = true;
-
-                while (hasMore) {
-                    const { data, error } = await supabase
-                        .from(tableName)
-                        .select('*')
-                        .range(from, to);
-
-                    if (error) throw error;
-                    
-                    if (data && data.length > 0) {
-                        allData = allData.concat(data);
-                        if (data.length < 1000) {
-                            hasMore = false;
-                        } else {
-                            from += 1000;
-                            to += 1000;
-                        }
-                    } else {
-                        hasMore = false;
-                    }
+            // Función interna para sincronizar una tabla individual con registro de errores
+            const syncTable = async (tableName, propertyName) => {
+                try {
+                    const data = await this.fetchAllRows(tableName);
+                    this.data[propertyName] = data || [];
+                    console.log(`StateManager: ✓ Sincronizada tabla [${tableName}] (${this.data[propertyName].length} registros)`);
+                    return true;
+                } catch (e) {
+                    console.warn(`StateManager: ⚠ No se pudo cargar [${tableName}]. Requerirá sesión activa.`);
+                    this.data[propertyName] = []; 
+                    return false;
                 }
-                return allData;
             };
 
-            const [
-                collaborators,
-                users,
-                vacationrequests,
-                vacationdays
-            ] = await Promise.all([
-                fetchAllRows('collaborators'),
-                fetchAllRows('users'),
-                fetchAllRows('vacation_requests'),
-                fetchAllRows('vacation_days')
+            // Ejecutar sincronizaciones en paralelo
+            await Promise.all([
+                syncTable('collaborators', 'collaborators'),
+                syncTable('users', 'users'),
+                syncTable('vacation_requests', 'vacationrequests'),
+                syncTable('vacation_days', 'vacationdays')
             ]);
 
-            this.data.collaborators = collaborators || [];
-            this.data.users = users || [];
-            this.data.vacationrequests = vacationrequests || [];
-            this.data.vacationdays = vacationdays || [];
-
-            // Restaurar sesión de usuario (si existe)
+            // Restaurar sesión de usuario (si existe localmente)
             const savedUser = localStorage.getItem('vacaciones_user_session');
             if (savedUser) {
                 this.data.currentUser = JSON.parse(savedUser);
             }
 
-            console.log(`StateManager: ${this.data.vacationdays.length} registros de días sincronizados.`);
+            console.log(`StateManager: Sincronización completada. Colaboradores: ${this.data.collaborators.length}`);
             return true;
         } catch (error) {
-            console.error("Error al inicializar StateManager:", error);
-            throw error;
+            console.error("StateManager: Error crítico durante el inicio:", error);
+            return false;
         }
+    },
+
+    // Función helper para traer todas las filas paginando de 1000 en 1000 (Límite de Supabase)
+    async fetchAllRows(tableName) {
+        let allData = [];
+        let from = 0;
+        let to = 999;
+        let hasMore = true;
+
+        while (hasMore) {
+            const { data, error } = await supabase
+                .from(tableName)
+                .select('*')
+                .range(from, to);
+
+            if (error) throw error;
+            
+            if (data && data.length > 0) {
+                allData = allData.concat(data);
+                if (data.length < 1000) {
+                    hasMore = false;
+                } else {
+                    from += 1000;
+                    to += 1000;
+                }
+            } else {
+                hasMore = false;
+            }
+        }
+        return allData;
     },
 
     // --- AUTH METHODS ---

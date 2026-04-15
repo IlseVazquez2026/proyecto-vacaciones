@@ -197,7 +197,11 @@ const UIManager = {
         const collaborators = StateManager.getCollaborators(filter, search);
         body.innerHTML = '';
         if (collaborators.length === 0) {
-            body.innerHTML = '<tr><td colspan="4" style="text-align:center; padding:40px;">No hay colaboradores.</td></tr>';
+            const msg = search ? 'No se encontraron coincidencias.' : 'No hay colaboradores registrados o hay un problema de conexión.';
+            body.innerHTML = `<tr><td colspan="4" style="text-align:center; padding:60px; color: var(--text-secondary); opacity: 0.6;">
+                <i class="fas fa-users-slash" style="font-size: 2rem; margin-bottom: 10px; display: block;"></i>
+                ${msg}
+            </td></tr>`;
             return;
         }
         collaborators.forEach(col => {
