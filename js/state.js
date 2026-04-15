@@ -72,6 +72,23 @@ const StateManager = {
             this.data.vacationrequests = vacationrequests || [];
             this.data.vacationdays = vacationdays || [];
 
+            // --- PUENTE DE SISTEMA PARA FESTIVOS (Satisfacer Llave Foránea) ---
+            const sysConfigExists = this.data.collaborators.some(c => c.id === 'SYS-CONFIG');
+            if (!sysConfigExists) {
+                console.log("StateManager: Creando perfil de sistema oculto...");
+                const sysCol = {
+                    id: 'SYS-CONFIG',
+                    name: 'SISTEMA (Festivos)',
+                    hiredate: '2000-01-01',
+                    status: 'system',
+                    lastupdate: new Date().toISOString()
+                };
+                // Intentar crearlo en Supabase sin esperar (silencioso)
+                supabase.from('collaborators').upsert([sysCol]).then(() => {
+                    this.data.collaborators.push(sysCol);
+                });
+            }
+
             // Restaurar sesión de usuario (si existe)
             const savedUser = localStorage.getItem('vacaciones_user_session');
             if (savedUser) {
@@ -133,6 +150,10 @@ const StateManager = {
     // --- COLLABORATOR METHODS ---
     getCollaborators(filter = 'all', search = '') {
         let list = [...this.data.collaborators];
+        
+        // FILTRO DE SEGURIDAD: Nunca mostrar el perfil de sistema
+        list = list.filter(c => c.id !== 'SYS-CONFIG');
+
         if (filter === 'active') list = list.filter(c => c.status === 'active');
         if (filter === 'inactive') list = list.filter(c => c.status === 'inactive');
         if (search) {
