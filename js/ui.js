@@ -456,8 +456,6 @@ const UIManager = {
         this.downloadExcel(data, 'plantilla_historial_vacaciones.xlsx', 'Historial');
     },
 
-    },
-
     async handleHolidaySubmit(e) {
         e.preventDefault();
         const date = document.getElementById('holiday-date').value;
