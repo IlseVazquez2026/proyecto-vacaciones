@@ -390,17 +390,12 @@ const Visualizer = {
                 </table>
                 </div>
             </div>
-
+            
             <div class="periods-timeline" style="display: flex; flex-direction: column; gap: 30px;">
-                ${balance.periods.length === 0 ? `
-                    <div class="card" style="text-align:center; padding: 40px;">
-                        <i class="fas fa-clock" style="font-size: 2rem; opacity: 0.2; margin-bottom: 15px;"></i>
-                        <p>Aún no se cumplen aniversarios laborales.</p>
-                    </div>
-                ` : ''}
-
-                ${[...balance.periods].reverse().map(p => {
-                    const progress = (p.used / p.days) * 100;
+                ${(() => {
+                    const seenDates = new Set();
+                    return [...balance.periods].reverse().map(p => {
+                        const progress = (p.used / p.days) * 100;
                     return `
                     <div class="card period-card" style="padding: 0; overflow: hidden; border: 1px solid var(--border-color); border-left: 5px solid ${p.isEarned ? (p.balance > 0 ? 'var(--primary-color)' : '#cbd5e0') : '#dc2626'};">
                         <div class="period-header" style="padding: 20px 25px; background-color: ${p.isEarned ? '#f9f9fb' : '#fef2f2'}; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center;">
@@ -451,20 +446,31 @@ const Visualizer = {
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    ${p.daysList.length === 0 ? '<tr><td colspan="5" style="text-align:center; padding:15px; opacity:0.5;">Sin días consumidos de este periodo.</td></tr>' : ''}
-                                    ${[...p.daysList]
+                                    ${p.daysList.length === 0 ? '<tr><td colspan="5" style="text-align:center; padding:15px; opacity:0.5;">Sin días consumidos de este periodo                                     ${[...p.daysList]
                                         .sort((a, b) => new Date(b.actualdate + 'T12:00:00') - new Date(a.actualdate + 'T12:00:00'))
-                                        .map(d => `
-                                        <tr style="${!d.isBusinessDay ? 'background-color: #fef2f2; border-left: 4px solid #ef4444;' : ''}">
-                                            <td style="white-space: nowrap;">
-                                                <div style="display: flex; align-items: center; gap: 8px;">
-                                                    <strong style="${!d.isBusinessDay ? 'color: #b91c1c;' : ''}">${new Date(d.actualdate + 'T12:00:00').toLocaleDateString()}</strong>
-                                                    <button class="btn-icon admin-only" onclick="Visualizer.editDayDate('${d.id}', '${d.actualdate}')" style="width:20px; height:20px;" title="Editar Fecha">
-                                                        <i class="fas fa-pencil-alt" style="font-size:0.6rem;"></i>
-                                                    </button>
-                                                </div>
-                                                ${!d.isBusinessDay ? '<span style="display:block; font-size: 0.65rem; color: #b91c1c; font-weight: 600; margin-top: 2px;">⚠️ ERROR: Fin de semana</span>' : ''}
-                                            </td>
+                                        .map(d => {
+                                            const isDuplicate = seenDates.has(d.actualdate);
+                                            seenDates.add(d.actualdate);
+                                            
+                                            let rowStyle = '';
+                                            if (isDuplicate) {
+                                                rowStyle = 'background-color: #fef9c3; border-left: 4px solid #eab308;';
+                                            } else if (!d.isBusinessDay) {
+                                                rowStyle = 'background-color: #fef2f2; border-left: 4px solid #ef4444;';
+                                            }
+
+                                            return `
+                                            <tr style="${rowStyle}">
+                                                <td style="white-space: nowrap;">
+                                                    <div style="display: flex; align-items: center; gap: 8px;">
+                                                        <strong style="${isDuplicate ? 'color: #854d0e;' : (!d.isBusinessDay ? 'color: #b91c1c;' : '')}">${new Date(d.actualdate + 'T12:00:00').toLocaleDateString()}</strong>
+                                                        <button class="btn-icon admin-only" onclick="Visualizer.editDayDate('${d.id}', '${d.actualdate}')" style="width:20px; height:20px;" title="Editar Fecha">
+                                                            <i class="fas fa-pencil-alt" style="font-size:0.6rem;"></i>
+                                                        </button>
+                                                    </div>
+                                                    ${isDuplicate ? '<span style="display:block; font-size: 0.65rem; color: #854d0e; font-weight: 600; margin-top: 2px;">⚠️ DUPLICADO: Ya existe este día</span>' : ''}
+                                                    ${(!d.isBusinessDay && !isDuplicate) ? '<span style="display:block; font-size: 0.65rem; color: #b91c1c; font-weight: 600; margin-top: 2px;">⚠️ ERROR: Fin de semana</span>' : ''}
+                                                </td>                  </td>
                                             <td>
                                                 <div class="admin-only">
                                                     <select class="status-select input-field" style="padding:2px; font-size:0.75rem; height:auto; width:100%; ${!d.isBusinessDay ? 'border-color: #ef4444;' : ''}" onchange="Visualizer.updateDayStatus('${d.id}', this.value)">
@@ -510,7 +516,7 @@ const Visualizer = {
                         </div>
                     </div>
                     `;
-                }).join('')}
+                }).join('')})()}
             </div>
         `;
 
