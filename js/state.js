@@ -73,36 +73,40 @@ const StateManager = {
             this.data.vacationdays = vacationdays || [];
 
             // --- PUENTE DE SISTEMA PARA FESTIVOS (Satisfacer Llave Foránea) ---
-            const sysConfigExists = this.data.collaborators.some(c => c.id === 'SYS-CONFIG');
-            if (!sysConfigExists) {
-                console.log("StateManager: Creando perfil de sistema oculto...");
-                const sysCol = {
-                    id: 'SYS-CONFIG',
-                    name: 'SISTEMA (Festivos)',
-                    hiredate: '2000-01-01',
-                    status: 'system',
-                    lastupdate: new Date().toISOString()
-                };
-                // Intentar crearlo en Supabase sin esperar (silencioso)
-                supabase.from('collaborators').upsert([sysCol]).then(() => {
-                    this.data.collaborators.push(sysCol);
-                });
-            }
+            try {
+                const sysConfigExists = this.data.collaborators.some(c => c.id === 'SYS-CONFIG');
+                if (!sysConfigExists) {
+                    console.log("StateManager: Creando perfil de sistema oculto...");
+                    const sysCol = {
+                        id: 'SYS-CONFIG',
+                        name: 'SISTEMA (Festivos)',
+                        hiredate: '2000-01-01',
+                        status: 'system',
+                        lastupdate: new Date().toISOString()
+                    };
+                    const { error: colErr } = await supabase.from('collaborators').upsert([sysCol]);
+                    if (colErr) console.error("Error creando perfil de sistema:", colErr);
+                    else this.data.collaborators.push(sysCol);
+                }
 
-            // --- PUENTE DE PETICION PARA FESTIVOS ---
-            const sysReqExists = this.data.vacationrequests.some(r => r.id === 'SYS-HOLIDAYS');
-            if (!sysReqExists) {
-                const sysReq = {
-                    id: 'SYS-HOLIDAYS',
-                    collaboratorid: 'SYS-CONFIG',
-                    registrationdate: '2000-01-01',
-                    dayscount: 0,
-                    status: 'system',
-                    lastupdate: new Date().toISOString()
-                };
-                supabase.from('vacation_requests').upsert([sysReq]).then(() => {
-                    this.data.vacationrequests.push(sysReq);
-                });
+                // --- PUENTE DE PETICION PARA FESTIVOS ---
+                const sysReqExists = this.data.vacationrequests.some(r => r.id === 'SYS-HOLIDAYS');
+                if (!sysReqExists) {
+                    console.log("StateManager: Creando solicitud de sistema...");
+                    const sysReq = {
+                        id: 'SYS-HOLIDAYS',
+                        collaboratorid: 'SYS-CONFIG',
+                        registrationdate: '2000-01-01',
+                        dayscount: 0,
+                        status: 'system',
+                        lastupdate: new Date().toISOString()
+                    };
+                    const { error: reqErr } = await supabase.from('vacation_requests').upsert([sysReq]);
+                    if (reqErr) console.error("Error creando solicitud de sistema:", reqErr);
+                    else this.data.vacationrequests.push(sysReq);
+                }
+            } catch (sysErr) {
+                console.error("Error general en puente de sistema:", sysErr);
             }
 
             // Restaurar sesión de usuario (si existe)
@@ -338,6 +342,15 @@ const StateManager = {
     },
 
     async saveHoliday(dateStr, title) {
+        // Doble verificación de seguridad: Asegurar que existan los padres antes de insertar el festivo
+        const sysCol = this.data.collaborators.find(c => c.id === 'SYS-CONFIG');
+        const sysReq = this.data.vacationrequests.find(r => r.id === 'SYS-HOLIDAYS');
+
+        if (!sysCol || !sysReq) {
+            console.warn("StateManager: Re-inicializando puentes de sistema...");
+            await this.init(); // Intentar recrear si por alguna razon no están
+        }
+
         const id = `hol-${Date.now()}`;
         const now = new Date().toISOString();
         const payload = {
