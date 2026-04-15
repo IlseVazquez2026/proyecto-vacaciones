@@ -282,7 +282,11 @@ const Visualizer = {
                     <div class="calendar-events-list">
                         ${dayEvents.map(e => {
                             let inlineStyle = '';
-                            if (!e.isWeekend) {
+                            let cssClass = `status-${e.isWeekend ? 'weekend' : 'dynamic'}`;
+
+                            if (e.status === 'holiday') {
+                                cssClass = 'status-holiday';
+                            } else if (!e.isWeekend) {
                                 let hue = colColorMap[e.colId];
                                 if (hue === undefined) {
                                     let hash = 0;
@@ -293,7 +297,7 @@ const Visualizer = {
                                 inlineStyle = `background-color: hsl(${hue}, 75%, 85%) !important; color: #1a1a1a !important; font-weight: 600 !important; border-left: 4px solid hsl(${hue}, 80%, 40%) !important; box-shadow: 1px 1px 2px rgba(0,0,0,0.1) !important;`;
                             }
                             return `
-                            <div class="calendar-event status-${e.isWeekend ? 'weekend' : 'dynamic'}" style="${inlineStyle}" title="${e.colName}">
+                            <div class="calendar-event ${cssClass}" style="${inlineStyle}" title="${e.colName}">
                                 ${e.colName}
                             </div>
                             `;
