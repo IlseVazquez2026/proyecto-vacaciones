@@ -231,6 +231,7 @@ body {
 .calendar-event.status-programmed { background-color: #0984E3; }
 .calendar-event.status-taken { background-color: #00B894; }
 .calendar-event.status-rescheduled { background-color: #6C5CE7; }
+.calendar-event.status-holiday { background-color: #2D3436; color: #fff; font-weight: bold; }
 
 /* History View */
 .history-col-header {

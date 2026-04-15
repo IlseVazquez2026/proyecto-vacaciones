@@ -210,6 +210,11 @@ const StateManager = {
 
     getVacationDays(collaboratorId, requestId = null) {
         let days = this.data.vacationdays;
+        // Filtrar dias del sistema por defecto
+        if (!collaboratorId) {
+            days = days.filter(d => d.collaboratorid !== 'SYS-CONFIG');
+        }
+        
         if (collaboratorId) days = days.filter(d => d.collaboratorid === collaboratorId);
         if (requestId) days = days.filter(d => d.requestid === requestId);
         return days;
@@ -281,6 +286,37 @@ const StateManager = {
         await supabase.from('vacation_requests').delete().eq('id', reqid);
         // Supabase debería borrar cascada si está configurado, o borramos manual:
         await supabase.from('vacation_days').delete().eq('requestid', reqid);
+        await this.init();
+    },
+
+    // --- HOLIDAY METHODS (SYS-CONFIG) ---
+    getHolidays() {
+        return (this.data.vacationdays || [])
+            .filter(d => d.collaboratorid === 'SYS-CONFIG')
+            .sort((a,b) => new Date(a.actualdate) - new Date(b.actualdate));
+    },
+
+    async saveHoliday(dateStr, title) {
+        const id = `hol-${Date.now()}`;
+        const now = new Date().toISOString();
+        const payload = {
+            id: id,
+            requestid: 'SYS-HOLIDAYS',
+            collaboratorid: 'SYS-CONFIG',
+            originaldate: dateStr,
+            actualdate: dateStr,
+            status: 'holiday',
+            notes: title,
+            lastupdate: now
+        };
+        const { error } = await supabase.from('vacation_days').upsert([payload]);
+        if (error) throw error;
+        await this.init();
+    },
+
+    async deleteHoliday(id) {
+        const { error } = await supabase.from('vacation_days').delete().eq('id', id);
+        if (error) throw error;
         await this.init();
     },
 

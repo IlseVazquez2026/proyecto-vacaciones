@@ -210,6 +210,13 @@ const VacationManager = {
 
     isBusinessDay(dateStr) {
         if (!dateStr || dateStr === 'null') return false;
+        
+        // Revisar catálogo de festivos primero
+        const holidays = StateManager.getHolidays();
+        if (holidays.some(h => h.actualdate === dateStr)) {
+            return false;
+        }
+
         const date = new Date(dateStr + 'T12:00:00'); // Evitar problemas de zona horaria
         if (isNaN(date.getTime())) return false;
         const day = date.getDay();
@@ -225,9 +232,22 @@ const VacationManager = {
         const events = [];
 
         days.forEach(d => {
-            const actualDate = new Date(d.actualdate);
+            const actualDate = new Date(d.actualdate + 'T12:00:00');
             if (actualDate >= startDate && actualDate <= endDate) {
                 if (d.status === 'cancelled') return;
+
+                if (d.collaboratorid === 'SYS-CONFIG') {
+                    // Es un dia festivo global
+                    events.push({
+                        dayId: d.id,
+                        colId: d.collaboratorid,
+                        colName: d.notes || 'DÍA FESTIVO',
+                        date: d.actualdate,
+                        status: 'holiday',
+                        isWeekend: false
+                    });
+                    return;
+                }
 
                 const col = StateManager.getCollaboratorById(d.collaboratorid);
                 events.push({

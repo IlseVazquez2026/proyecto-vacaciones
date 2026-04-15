@@ -30,6 +30,7 @@ const UIManager = {
             'nav-vacations': 'view-vacations',
             'nav-history': 'view-history',
             'nav-personnel': 'view-personnel',
+            'nav-holidays': 'view-holidays',
             'nav-config': 'view-config'
         };
 
@@ -76,11 +77,22 @@ const UIManager = {
             btn.onclick = () => {
                 document.getElementById('collaborator-modal').classList.remove('active');
                 document.getElementById('user-modal').classList.remove('active');
+                document.getElementById('modal-holiday').classList.remove('active');
             };
         });
 
         document.getElementById('collaborator-form').onsubmit = (e) => this.handleFormSubmit(e);
         document.getElementById('user-form').onsubmit = (e) => this.handleUserFormSubmit(e);
+        document.getElementById('form-holiday').onsubmit = (e) => this.handleHolidaySubmit(e);
+
+        const btnAddHoliday = document.getElementById('btn-show-add-holiday-modal');
+        if (btnAddHoliday) {
+            btnAddHoliday.onclick = () => {
+                if (AuthManager.checkPermission('admin')) {
+                    document.getElementById('modal-holiday').classList.add('active');
+                }
+            };
+        }
         
         const quickVacForm = document.getElementById('quick-vacation-form');
         if (quickVacForm) {
@@ -174,6 +186,7 @@ const UIManager = {
                 Visualizer.renderHistory();
                 break;
             case 'personnel': Visualizer.renderPersonnelPanel(); break;
+            case 'holidays': this.renderHolidaysTable(); break;
             case 'config': Visualizer.renderUserManagement(); break;
         }
     },
@@ -441,6 +454,59 @@ const UIManager = {
             ["00", "2023-04-11", "approved", "Día disfrutado"]
         ];
         this.downloadExcel(data, 'plantilla_historial_vacaciones.xlsx', 'Historial');
+    },
+
+    },
+
+    async handleHolidaySubmit(e) {
+        e.preventDefault();
+        const date = document.getElementById('holiday-date').value;
+        const title = document.getElementById('holiday-title').value;
+
+        try {
+            await StateManager.saveHoliday(date, title);
+            this.showToast('Día festivo guardado correctamente', 'success');
+            document.getElementById('modal-holiday').classList.remove('active');
+            e.target.reset();
+            this.refreshView('holidays');
+        } catch (err) {
+            this.showToast('Error: ' + err.message, 'error');
+        }
+    },
+
+    renderHolidaysTable() {
+        const body = document.getElementById('holidays-table-body');
+        if (!body) return;
+        const holidays = StateManager.getHolidays();
+        body.innerHTML = '';
+
+        if (holidays.length === 0) {
+            body.innerHTML = '<tr><td colspan="3" style="text-align:center; padding:40px;">No hay días festivos registrados.</td></tr>';
+            return;
+        }
+
+        holidays.forEach(h => {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td><strong>${h.actualdate}</strong></td>
+                <td>${h.notes}</td>
+                <td class="text-right">
+                    <button class="btn btn-danger-outline btn-sm" onclick="UIManager.confirmDeleteHoliday('${h.id}')">
+                        <i class="fas fa-trash-alt"></i>
+                    </button>
+                </td>
+            `;
+            body.appendChild(tr);
+        });
+    },
+
+    confirmDeleteHoliday(id) {
+        if (confirm('¿Eliminar este día festivo?')) {
+            StateManager.deleteHoliday(id).then(() => {
+                this.showToast('Festivo eliminado', 'success');
+                this.refreshView('holidays');
+            }).catch(err => this.showToast('Error: ' + err.message, 'error'));
+        }
     },
 
     async handleHistoryFileUpload(file) {

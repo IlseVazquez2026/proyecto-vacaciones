@@ -41,6 +41,10 @@
                     <i class="fas fa-history"></i>
                     <span>Histórico</span>
                 </a>
+                <a href="#" class="menu-item" id="nav-holidays">
+                    <i class="fas fa-holly-berry"></i>
+                    <span>Días Festivos</span>
+                </a>
                 <div class="menu-divider"></div>
                 <a href="#" class="menu-item" id="nav-config">
                     <i class="fas fa-cog"></i>
@@ -361,6 +365,37 @@
                                 <button class="btn btn-danger-outline btn-sm admin-only" id="btn-reset-data"><i class="fas fa-trash-alt"></i> Limpiar Todo</button>
                             </div>
                         </div>
+                </section>
+
+                <!-- VISTA DIAS FESTIVOS -->
+                <section id="view-holidays" class="app-view" style="display:none;">
+                    <div class="view-header">
+                        <h2>Gestión de Días Festivos</h2>
+                        <div class="header-actions">
+                            <button class="btn btn-primary" id="btn-show-add-holiday-modal"><i class="fas fa-plus"></i> Nuevo Festivo</button>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <div class="card-header">
+                            <h3>Catálogo de Días Inhábiles (Global)</h3>
+                            <p style="font-size:0.85rem; color:var(--text-secondary);">Estos días serán excluidos automáticamente del conteo de vacaciones de todo el personal.</p>
+                        </div>
+                        <div class="card-body">
+                            <div class="table-responsive">
+                                <table class="data-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Fecha</th>
+                                            <th>Motivo / Festividad</th>
+                                            <th class="text-right">Acciones</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="holidays-table-body">
+                                        <!-- Holidays Rendered Here -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
                     </div>
                 </section>
             </div>
@@ -438,6 +473,30 @@
             <div class="modal-footer" style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px;">
                 <button type="button" class="btn btn-secondary close-modal">Cancelar</button>
                 <button type="submit" class="btn btn-primary">Guardar Colaborador</button>
+            </div>
+        </form>
+    </div>
+    </div>
+
+    <!-- Modal Registar Festivo -->
+    <div id="modal-holiday" class="modal">
+    <div class="modal-content" style="max-width: 400px;">
+        <div class="modal-header">
+            <h3>Registrar Día Festivo</h3>
+            <button class="close-modal"><i class="fas fa-times"></i></button>
+        </div>
+        <form id="form-holiday" style="margin-top: 20px;">
+            <div class="form-group" style="margin-bottom: 15px;">
+                <label>Fecha del Festivo</label>
+                <input type="date" id="holiday-date" class="input-field" required>
+            </div>
+            <div class="form-group" style="margin-bottom: 20px;">
+                <label>Festividad / Motivo</label>
+                <input type="text" id="holiday-title" class="input-field" placeholder="Ej. 16 de Septiembre" required>
+            </div>
+            <div class="modal-footer" style="display: flex; justify-content: flex-end; gap: 10px;">
+                <button type="button" class="btn btn-secondary close-modal">Cancelar</button>
+                <button type="submit" class="btn btn-primary">Guardar Festivo</button>
             </div>
         </form>
     </div>
