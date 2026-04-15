@@ -33,6 +33,10 @@ const AuthManager = {
                     btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Iniciando...';
                     
                     const loggedInUser = await StateManager.login(user, pass);
+                    
+                    // Sincronizar datos ahora que tenemos sesión activa
+                    await StateManager.init();
+                    
                     this.hideLogin();
                     this.applyPermissions(loggedInUser.role);
                     UIManager.showToast(`Bienvenido, ${loggedInUser.name}`, 'success');
