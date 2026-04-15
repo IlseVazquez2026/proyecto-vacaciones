@@ -132,13 +132,17 @@ const StateManager = {
 
     // --- COLLABORATOR METHODS ---
     getCollaborators(filter = 'all', search = '') {
-        let list = this.data.collaborators;
+        let list = [...this.data.collaborators];
         if (filter === 'active') list = list.filter(c => c.status === 'active');
         if (filter === 'inactive') list = list.filter(c => c.status === 'inactive');
         if (search) {
             const query = search.toLowerCase();
             list = list.filter(c => c.name.toLowerCase().includes(query));
         }
+        
+        // Orden alfabético por nombre
+        list.sort((a, b) => a.name.localeCompare(b.name));
+        
         return list;
     },
 
