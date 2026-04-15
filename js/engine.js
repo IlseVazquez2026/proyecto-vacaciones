@@ -231,23 +231,11 @@ const VacationManager = {
         const days = StateManager.data.vacationdays || [];
         const events = [];
 
+        // 1. Agregar eventos normales de colaboradores
         days.forEach(d => {
             const actualDate = new Date(d.actualdate + 'T12:00:00');
             if (actualDate >= startDate && actualDate <= endDate) {
                 if (d.status === 'cancelled') return;
-
-                if (d.collaboratorid === 'SYS-CONFIG') {
-                    // Es un dia festivo global
-                    events.push({
-                        dayId: d.id,
-                        colId: d.collaboratorid,
-                        colName: d.notes || 'DÍA FESTIVO',
-                        date: d.actualdate,
-                        status: 'holiday',
-                        isWeekend: false
-                    });
-                    return;
-                }
 
                 const col = StateManager.getCollaboratorById(d.collaboratorid);
                 events.push({
@@ -256,7 +244,23 @@ const VacationManager = {
                     colName: col ? col.name : 'Desconocido',
                     date: d.actualdate,
                     status: d.status,
-                    isWeekend: !this.isBusinessDay(d.actualdate)
+                    isWeekend: !this.isBusinessDay(d.actualdate) // Esta función ahora saltará festivos porque está consultando a JSON
+                });
+            }
+        });
+
+        // 2. Agregar los festivos globales desde el nuevo origen local JSON
+        const holidays = StateManager.getHolidays();
+        holidays.forEach(h => {
+            const actualDate = new Date(h.actualdate + 'T12:00:00');
+            if (actualDate >= startDate && actualDate <= endDate) {
+                events.push({
+                    dayId: h.id,
+                    colId: 'SYS-CONFIG',
+                    colName: h.notes || 'DÍA FESTIVO',
+                    date: h.actualdate,
+                    status: 'holiday',
+                    isWeekend: false
                 });
             }
         });

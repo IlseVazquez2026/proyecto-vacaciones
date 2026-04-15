@@ -228,10 +228,10 @@ body {
     filter: brightness(1.1);
 }
 
-.calendar-event.status-programmed { background-color: #0984E3; }
-.calendar-event.status-taken { background-color: #00B894; }
-.calendar-event.status-rescheduled { background-color: #6C5CE7; }
-.calendar-event.status-holiday { background-color: #2D3436; color: #fff; font-weight: bold; }
+.calendar-event.status-programmed { background-color: #0984E3; color: white; }
+.calendar-event.status-taken { background-color: #00B894; color: white; }
+.calendar-event.status-rescheduled { background-color: #6C5CE7; color: white; }
+.calendar-event.status-holiday { background-color: #FCE4EC; color: #C2185B !important; font-weight: bold; border: 1px solid #F48FB1; border-left: 4px solid #C2185B !important; }
 
 /* History View */
 .history-col-header {
