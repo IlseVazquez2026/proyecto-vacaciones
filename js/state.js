@@ -89,6 +89,22 @@ const StateManager = {
                 });
             }
 
+            // --- PUENTE DE PETICION PARA FESTIVOS ---
+            const sysReqExists = this.data.vacationrequests.some(r => r.id === 'SYS-HOLIDAYS');
+            if (!sysReqExists) {
+                const sysReq = {
+                    id: 'SYS-HOLIDAYS',
+                    collaboratorid: 'SYS-CONFIG',
+                    registrationdate: '2000-01-01',
+                    dayscount: 0,
+                    status: 'system',
+                    lastupdate: new Date().toISOString()
+                };
+                supabase.from('vacation_requests').upsert([sysReq]).then(() => {
+                    this.data.vacationrequests.push(sysReq);
+                });
+            }
+
             // Restaurar sesión de usuario (si existe)
             const savedUser = localStorage.getItem('vacaciones_user_session');
             if (savedUser) {
@@ -225,8 +241,12 @@ const StateManager = {
 
     // --- VACATION METHODS ---
     getVacationRequests(collaboratorId) {
-        if (!collaboratorId) return this.data.vacationrequests;
-        return this.data.vacationrequests.filter(r => r.collaboratorid === collaboratorId);
+        let list = this.data.vacationrequests;
+        // Ocultar peticiones de sistema
+        list = list.filter(r => r.id !== 'SYS-HOLIDAYS');
+        
+        if (!collaboratorId) return list;
+        return list.filter(r => r.collaboratorid === collaboratorId);
     },
 
     getVacationDays(collaboratorId, requestId = null) {
