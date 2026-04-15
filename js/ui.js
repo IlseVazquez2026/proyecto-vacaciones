@@ -480,13 +480,18 @@ const UIManager = {
                     this.showToast(`Se omitieron ${skippedRows} registros por formato de fecha inválido.`, 'warning');
                 }
 
-                // 2. Procesar cada grupo como una solicitud única
+                // 2. Acumular todas las solicitudes y días en vez de guardarlos 1 a 1
+                let allRequests = [];
+                let allDays = [];
                 let employeesProcessed = 0;
+
                 for (const colid in groups) {
                     const dates = groups[colid];
                     const sortedDates = dates.map(d => d.date).sort();
+                    const reqid = 'req-hist-' + colid + '-' + Date.now();
                     
                     const request = {
+                        id: reqid,
                         collaboratorid: colid,
                         startdate: sortedDates[0],
                         enddate: sortedDates[sortedDates.length - 1],
@@ -496,6 +501,8 @@ const UIManager = {
                     };
 
                     const daysPayload = dates.map(d => ({
+                        id: `d-hist-${Math.random().toString(36).substr(2, 9)}`,
+                        requestid: reqid,
                         collaboratorid: colid,
                         originaldate: d.date,
                         actualdate: d.date,
@@ -503,11 +510,16 @@ const UIManager = {
                         notes: d.notes
                     }));
 
-                    await StateManager.saveVacationRequest(request, daysPayload);
+                    allRequests.push(request);
+                    allDays.push(...daysPayload);
                     employeesProcessed++;
                 }
 
-                this.showToast(`Historial cargado: ${employeesProcessed} empleados actualizados`, 'success');
+                // Aquí disparamos EL UPSERT MASIVO UNA SOLA VEZ
+                this.showToast(`Escribiendo base de datos, por favor espera...`, 'info');
+                await StateManager.bulkSaveHistory(allRequests, allDays);
+
+                this.showToast(`Historial cargado con éxito: ${employeesProcessed} empleados actualizados.`, 'success');
                 this.refreshView(this.currentView);
             } catch (err) {
                 console.error(err);

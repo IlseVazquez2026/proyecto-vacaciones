@@ -235,6 +235,37 @@ const StateManager = {
         return reqid;
     },
 
+    async bulkSaveHistory(allRequests, allDays) {
+        const now = new Date().toISOString();
+
+        // Asegurar que tengan lastupdate
+        const reqsPayload = allRequests.map(r => ({ ...r, lastupdate: now }));
+        const daysPayload = allDays.map(d => ({ ...d, lastupdate: now }));
+
+        // Upsert masivo de solicitudes (en bloques de 1000 máximo que es el límite normal de upsert, aunque supabase aguanta bien arreglos directos)
+        // Mandamos todo completo. Supabase-js internamente fragmenta o postgREST aguanta si no es excesivo.
+        // Si el arreglo es muy gigante (ej > 5000) deberíamos ciclar el array, pero 200-1000 pasa de un golpe sin problemas.
+        
+        let reqsError = null;
+        if (reqsPayload.length > 0) {
+            const { error } = await supabase.from('vacation_requests').upsert(reqsPayload);
+            reqsError = error;
+        }
+
+        if (reqsError) throw reqsError;
+
+        let daysError = null;
+        if (daysPayload.length > 0) {
+            const { error } = await supabase.from('vacation_days').upsert(daysPayload);
+            daysError = error;
+        }
+
+        if (daysError) throw daysError;
+
+        await this.init();
+        return true;
+    },
+
     async updateVacationDay(dayId, updates) {
         const { error } = await supabase.from('vacation_days')
             .update({ ...updates, lastupdate: new Date().toISOString() })
