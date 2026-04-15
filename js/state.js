@@ -72,43 +72,6 @@ const StateManager = {
             this.data.vacationrequests = vacationrequests || [];
             this.data.vacationdays = vacationdays || [];
 
-            // --- PUENTE DE SISTEMA PARA FESTIVOS (Satisfacer Llave Foránea) ---
-            try {
-                const sysConfigExists = this.data.collaborators.some(c => c.id === 'SYS-CONFIG');
-                if (!sysConfigExists) {
-                    console.log("StateManager: Creando perfil de sistema oculto...");
-                    const sysCol = {
-                        id: 'SYS-CONFIG',
-                        name: 'SISTEMA (Festivos)',
-                        hiredate: '2000-01-01',
-                        status: 'system',
-                        lastupdate: new Date().toISOString()
-                    };
-                    const { error: colErr } = await supabase.from('collaborators').upsert([sysCol]);
-                    if (colErr) console.error("Error creando perfil de sistema:", colErr);
-                    else this.data.collaborators.push(sysCol);
-                }
-
-                // --- PUENTE DE PETICION PARA FESTIVOS ---
-                const sysReqExists = this.data.vacationrequests.some(r => r.id === 'SYS-HOLIDAYS');
-                if (!sysReqExists) {
-                    console.log("StateManager: Creando solicitud de sistema...");
-                    const sysReq = {
-                        id: 'SYS-HOLIDAYS',
-                        collaboratorid: 'SYS-CONFIG',
-                        registrationdate: '2000-01-01',
-                        dayscount: 0,
-                        status: 'system',
-                        lastupdate: new Date().toISOString()
-                    };
-                    const { error: reqErr } = await supabase.from('vacation_requests').upsert([sysReq]);
-                    if (reqErr) console.error("Error creando solicitud de sistema:", reqErr);
-                    else this.data.vacationrequests.push(sysReq);
-                }
-            } catch (sysErr) {
-                console.error("Error general en puente de sistema:", sysErr);
-            }
-
             // Restaurar sesión de usuario (si existe)
             const savedUser = localStorage.getItem('vacaciones_user_session');
             if (savedUser) {
@@ -334,44 +297,31 @@ const StateManager = {
         await this.init();
     },
 
-    // --- HOLIDAY METHODS (SYS-CONFIG) ---
+    // --- HOLIDAY METHODS (SCHEMA-SAFE) ---
     getHolidays() {
-        return (this.data.vacationdays || [])
-            .filter(d => d.collaboratorid === 'SYS-CONFIG')
-            .sort((a,b) => new Date(a.actualdate) - new Date(b.actualdate));
+        // Leemos desde el almacenamiento local para evadir las reglas de la base de datos
+        const savedArgs = localStorage.getItem('vacaciones_holidays_json');
+        if (!savedArgs) return [];
+        return JSON.parse(savedArgs).sort((a,b) => new Date(a.actualdate) - new Date(b.actualdate));
     },
 
     async saveHoliday(dateStr, title) {
-        // Doble verificación de seguridad: Asegurar que existan los padres antes de insertar el festivo
-        const sysCol = this.data.collaborators.find(c => c.id === 'SYS-CONFIG');
-        const sysReq = this.data.vacationrequests.find(r => r.id === 'SYS-HOLIDAYS');
-
-        if (!sysCol || !sysReq) {
-            console.warn("StateManager: Re-inicializando puentes de sistema...");
-            await this.init(); // Intentar recrear si por alguna razon no están
-        }
-
-        const id = `hol-${Date.now()}`;
-        const now = new Date().toISOString();
+        const current = this.getHolidays();
         const payload = {
-            id: id,
-            requestid: 'SYS-HOLIDAYS',
+            id: `hol-${Date.now()}`,
             collaboratorid: 'SYS-CONFIG',
-            originaldate: dateStr,
             actualdate: dateStr,
-            status: 'holiday',
             notes: title,
-            lastupdate: now
+            status: 'holiday'
         };
-        const { error } = await supabase.from('vacation_days').upsert([payload]);
-        if (error) throw error;
-        await this.init();
+        current.push(payload);
+        localStorage.setItem('vacaciones_holidays_json', JSON.stringify(current));
     },
 
     async deleteHoliday(id) {
-        const { error } = await supabase.from('vacation_days').delete().eq('id', id);
-        if (error) throw error;
-        await this.init();
+        let current = this.getHolidays();
+        current = current.filter(h => h.id !== id);
+        localStorage.setItem('vacaciones_holidays_json', JSON.stringify(current));
     },
 
     getVacationRules() {
