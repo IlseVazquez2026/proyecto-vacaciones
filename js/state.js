@@ -23,19 +23,49 @@ const StateManager = {
 
     async init() {
         try {
-            console.log("StateManager: Iniciando sincronización con Supabase (Límite 20k)...");
+            console.log("StateManager: Iniciando sincronización recursiva con Supabase...");
             
-            // ACLARACIÓN: Solicitamos hasta 20,000 registros para evitar el truncamiento de PostgREST
+            // Función helper para traer todas las filas paginando de 1000 en 1000
+            const fetchAllRows = async (tableName) => {
+                let allData = [];
+                let from = 0;
+                let to = 999;
+                let hasMore = true;
+
+                while (hasMore) {
+                    const { data, error } = await supabase
+                        .from(tableName)
+                        .select('*')
+                        .range(from, to)
+                        .order('lastupdate', { ascending: false }); // Priorizar recientes si algo falla
+
+                    if (error) throw error;
+                    
+                    if (data && data.length > 0) {
+                        allData = allData.concat(data);
+                        if (data.length < 1000) {
+                            hasMore = false;
+                        } else {
+                            from += 1000;
+                            to += 1000;
+                        }
+                    } else {
+                        hasMore = false;
+                    }
+                }
+                return allData;
+            };
+
             const [
-                { data: collaborators },
-                { data: users },
-                { data: vacationrequests },
-                { data: vacationdays }
+                collaborators,
+                users,
+                vacationrequests,
+                vacationdays
             ] = await Promise.all([
-                supabase.from('collaborators').select('*').limit(20000),
-                supabase.from('users').select('*').limit(20000),
-                supabase.from('vacation_requests').select('*').limit(20000),
-                supabase.from('vacation_days').select('*').limit(20000)
+                fetchAllRows('collaborators'),
+                fetchAllRows('users'),
+                fetchAllRows('vacation_requests'),
+                fetchAllRows('vacation_days')
             ]);
 
             this.data.collaborators = collaborators || [];
@@ -49,7 +79,7 @@ const StateManager = {
                 this.data.currentUser = JSON.parse(savedUser);
             }
 
-            console.log("StateManager: Datos sincronizados correctamente.");
+            console.log(`StateManager: ${this.data.vacationdays.length} registros de días sincronizados.`);
             return true;
         } catch (error) {
             console.error("Error al inicializar StateManager:", error);
