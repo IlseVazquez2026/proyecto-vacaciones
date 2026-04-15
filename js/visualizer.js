@@ -268,9 +268,17 @@ const Visualizer = {
             const dateStr = `${this.currentYear}-${String(this.currentMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
             const dayEvents = events.filter(e => e.date === dateStr);
             
+            const totalOnLeave = dayEvents.length;
+            const countBadge = totalOnLeave > 0 
+                ? `<span style="background:var(--primary-color); color:white; border-radius:10px; padding:2px 6px; font-size:0.65rem; font-weight:bold;" title="${totalOnLeave} en vacaciones">${totalOnLeave} <i class="fas fa-users" style="font-size:0.5rem;"></i></span>` 
+                : '';
+
             html += `
                 <div class="calendar-day">
-                    <div class="calendar-day-num">${day}</div>
+                    <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 4px;">
+                        <div class="calendar-day-num" style="margin-bottom:0;">${day}</div>
+                        ${countBadge}
+                    </div>
                     <div class="calendar-events-list">
                         ${dayEvents.map(e => {
                             let inlineStyle = '';
