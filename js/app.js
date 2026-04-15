@@ -19,7 +19,15 @@ document.addEventListener('DOMContentLoaded', async () => {
         }, 100);
 
     } catch (error) {
-        console.error("Fallo crítico en el inicio:", error);
-        alert("Hubo un problema al conectar con la base de datos. Por favor revisa tu conexión.");
+        console.warn("Aviso: Sincronización inicial limitada (posiblemente requiere inicio de sesión).", error);
+        
+        // Inicializar Managers de forma segura incluso con error parcial de sync
+        AuthManager.init();
+        UIManager.init();
+        Visualizer.init();
+        
+        setTimeout(() => {
+            if (mainView) mainView.style.opacity = '1';
+        }, 100);
     }
 });
