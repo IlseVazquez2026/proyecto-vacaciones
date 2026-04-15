@@ -268,8 +268,9 @@ const Visualizer = {
             const dateStr = `${this.currentYear}-${String(this.currentMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
             const dayEvents = events.filter(e => e.date === dateStr);
             
-            const totalOnLeave = dayEvents.length;
-            const countBadge = totalOnLeave > 0 
+            const hasHoliday = dayEvents.some(e => e.status === 'holiday');
+            const totalOnLeave = dayEvents.filter(e => e.status !== 'holiday').length;
+            const countBadge = (totalOnLeave > 0 && !hasHoliday)
                 ? `<span style="background:var(--primary-color); color:white; border-radius:10px; padding:2px 6px; font-size:0.65rem; font-weight:bold;" title="${totalOnLeave} en vacaciones">${totalOnLeave} <i class="fas fa-users" style="font-size:0.5rem;"></i></span>` 
                 : '';
 
