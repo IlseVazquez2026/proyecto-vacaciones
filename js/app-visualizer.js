@@ -172,8 +172,10 @@ const Visualizer = {
         const stats = StateManager.getStats();
         const allCollaborators = StateManager.getCollaborators('all');
         
-        document.getElementById('dash-total').textContent = stats.total;
-        document.getElementById('dash-on-leave').textContent = stats.onLeave;
+        const dashTotal = document.getElementById('dash-total');
+        const dashOnLeave = document.getElementById('dash-on-leave');
+        if (dashTotal) dashTotal.textContent = stats.total;
+        if (dashOnLeave) dashOnLeave.textContent = stats.onLeave;
 
         const vacSelect = document.getElementById('vac-col-select');
         if (vacSelect) {
