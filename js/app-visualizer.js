@@ -694,18 +694,20 @@ const Visualizer = {
                 <td>${u.name} ${u.status === 'suspended' ? '<span style="color:red;font-size:0.7em">(Suspendido)</span>' : ''}</td>
                 <td><code>${u.username}</code></td>
                 <td><span class="badge">${u.role === 'admin' ? 'Administrador' : 'Invitado'}</span></td>
-                <td>
-                    ${u.username === 'admin' ? '' : `
-                        <button class="btn-icon delete admin-only" onclick="UIManager.handleDeleteUser('${u.id}')" title="Eliminar">
-                            <i class="fas fa-user-minus"></i>
+                <td style="padding: 10px 15px;">
+                    <div style="display: flex; gap: 6px; align-items: center;">
+                        ${u.username === 'admin' ? '' : `
+                            <button class="btn-icon delete admin-only" onclick="UIManager.handleDeleteUser('${u.id}')" title="Eliminar" style="padding: 5px;">
+                                <i class="fas fa-user-minus"></i>
+                            </button>
+                            <button class="btn-icon primary admin-only" onclick="UIManager.toggleUserSuspension('${u.id}')" title="${u.status === 'suspended' ? 'Activar' : 'Suspender'}" style="padding: 5px;">
+                                <i class="fas ${u.status === 'suspended' ? 'fa-play' : 'fa-pause'}"></i>
+                            </button>
+                        `}
+                        <button class="btn-icon edit admin-only" onclick="UIManager.showUserModal('${u.id}')" title="Editar" style="padding: 5px;">
+                            <i class="fas fa-edit"></i>
                         </button>
-                        <button class="btn-icon primary admin-only" onclick="UIManager.toggleUserSuspension('${u.id}')" title="${u.status === 'suspended' ? 'Activar' : 'Suspender'}">
-                            <i class="fas ${u.status === 'suspended' ? 'fa-play' : 'fa-pause'}"></i>
-                        </button>
-                    `}
-                    <button class="btn-icon edit admin-only" onclick="UIManager.showUserModal('${u.id}')" title="Editar">
-                        <i class="fas fa-edit"></i>
-                    </button>
+                    </div>
                 </td>
             </tr>
         `).join('');
