@@ -49,12 +49,32 @@ const StateManager = {
                 syncTable('permissions', 'permissions')
             ]);
 
-            // --- REFUERZO DE PERSISTENCIA PARA PERMISOS ---
-            // Si la tabla no existe en Supabase o está vacía, intentamos cargar el backup local
+            // --- REFUERZO DE PERSISTENCIA Y MIGRACIÓN PARA PERMISOS ---
             const localPerms = localStorage.getItem('vacaciones_permissions_backup');
-            if (localPerms && (!this.data.permissions || this.data.permissions.length === 0)) {
-                this.data.permissions = JSON.parse(localPerms);
-                console.log(`StateManager: ✓ Cargados ${this.data.permissions.length} permisos desde respaldo local.`);
+            if (localPerms) {
+                const parsedLocal = JSON.parse(localPerms);
+                // Si la nube está vacía pero tenemos datos locales, intentamos migrar (subir a la nube)
+                if (parsedLocal.length > 0 && (!this.data.permissions || this.data.permissions.length === 0)) {
+                    console.log(`StateManager: ⇅ Detectados ${parsedLocal.length} permisos locales. Iniciando migración a la nube...`);
+                    try {
+                        // Subida masiva (upsert)
+                        const { error } = await supabase.from('permissions').upsert(parsedLocal);
+                        if (!error) {
+                            console.log("StateManager: ✓ Migración de permisos completada con éxito.");
+                            // Volver a cargar para asegurar sincronía
+                            const { data } = await supabase.from('permissions').select('*');
+                            this.data.permissions = data || parsedLocal;
+                        } else {
+                            throw error;
+                        }
+                    } catch (migrationError) {
+                        console.error("StateManager: ⚠ Error durante la migración de permisos:", migrationError);
+                        this.data.permissions = parsedLocal; // Fallback al local si falla la subida
+                    }
+                } else if (!this.data.permissions || this.data.permissions.length === 0) {
+                    // Si no hay nada en la nube ni local que subir, pero hay un backup de "vanguardia" (por si acaso)
+                    this.data.permissions = parsedLocal;
+                }
             }
 
             // Restaurar sesión de usuario (si existe localmente)
@@ -326,9 +346,21 @@ const StateManager = {
             lastupdate: new Date().toISOString()
         };
         
+        // Sanitizar el payload para asegurar que solo contenga columnas existentes en DB
+        const sanitizedPayload = {
+            id: payload.id,
+            collaboratorid: payload.collaboratorid,
+            date: payload.date,
+            start_time: payload.start_time,
+            end_time: payload.end_time,
+            total_hours: payload.total_hours,
+            notes: payload.notes,
+            lastupdate: payload.lastupdate
+        };
+
         // Intentar guardar en Supabase. Si la tabla no existe o falla, guardamos localmente como fallback.
         try {
-            const { error } = await supabase.from('permissions').upsert(payload);
+            const { error } = await supabase.from('permissions').upsert(sanitizedPayload);
             if (error) throw error;
         } catch (err) {
             console.warn("StateManager: Guardando permiso localmente debido a falta de tabla 'permissions' en DB.", err);
