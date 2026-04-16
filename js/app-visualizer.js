@@ -861,7 +861,7 @@ const Visualizer = {
                     <i class="fas fa-calendar-day"></i> ${monthNames[month]} ${year}
                 </td>
                 <td style="text-align:right; padding-right:15px;">
-                    <button class="btn-icon delete admin-only" onclick="UIManager.handleDeleteMonthPermissions(${year}, ${month})" title="Borrar historial de este mes">
+                    <button class="btn btn-danger-outline btn-sm admin-only" onclick="UIManager.handleDeleteMonthPermissions(${year}, ${month})" title="Borrar historial de este mes" style="padding: 5px 10px; font-size: 0.8rem; min-width: auto;">
                         <i class="fas fa-trash-alt"></i> Borrar Mes
                     </button>
                 </td>
