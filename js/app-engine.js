@@ -283,6 +283,36 @@ const VacationManager = {
                 hasPending: balance.requests.some(r => r.status === 'requested')
             };
         });
+    },
+
+    // --- PERMISSION HELPERS ---
+    calculateHours(start, end) {
+        if (!start || !end) return 0;
+        const [h1, m1] = start.split(':').map(Number);
+        const [h2, m2] = end.split(':').map(Number);
+        
+        const totalMinutes1 = (h1 * 60) + m1;
+        const totalMinutes2 = (h2 * 60) + m2;
+        
+        const diff = totalMinutes2 - totalMinutes1;
+        if (diff <= 0) return 0;
+        
+        const hours = Math.floor(diff / 60);
+        const minutes = diff % 60;
+        
+        if (minutes === 0) return `${hours}h`;
+        return `${hours}h ${minutes}m`;
+    },
+
+    getPermissionsForMonth(year, month) {
+        const startDate = new Date(year, month, 1);
+        const endDate = new Date(year, month + 1, 0);
+        
+        const permissions = StateManager.getPermissions();
+        return permissions.filter(p => {
+            const pDate = new Date(p.date + 'T12:00:00');
+            return pDate >= startDate && pDate <= endDate;
+        });
     }
 };
 

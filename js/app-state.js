@@ -8,6 +8,7 @@ const StateManager = {
         users: [],
         vacationrequests: [],
         vacationdays: [],
+        permissions: [],
         vacationrules: {
             pre2023: [
                 { years: 1, days: 6 }, { years: 2, days: 8 }, { years: 3, days: 10 }, { years: 4, days: 12 }, { years: 5, days: 14 },
@@ -44,7 +45,8 @@ const StateManager = {
                 syncTable('collaborators', 'collaborators'),
                 syncTable('users', 'users'),
                 syncTable('vacation_requests', 'vacationrequests'),
-                syncTable('vacation_days', 'vacationdays')
+                syncTable('vacation_days', 'vacationdays'),
+                syncTable('permissions', 'permissions')
             ]);
 
             // Restaurar sesión de usuario (si existe localmente)
@@ -299,6 +301,53 @@ const StateManager = {
         await supabase.from('vacation_requests').delete().eq('id', reqid);
         // Supabase debería borrar cascada si está configurado, o borramos manual:
         await supabase.from('vacation_days').delete().eq('requestid', reqid);
+        await this.init();
+    },
+
+    // --- PERMISSION METHODS ---
+    getPermissions(collaboratorId = null) {
+        let list = this.data.permissions || [];
+        if (collaboratorId) list = list.filter(p => p.collaboratorid === collaboratorId);
+        return list.sort((a,b) => new Date(b.date) - new Date(a.date));
+    },
+
+    async savePermission(permission) {
+        const payload = {
+            ...permission,
+            id: permission.id || `perm-${Date.now()}`,
+            lastupdate: new Date().toISOString()
+        };
+        
+        // Intentar guardar en Supabase. Si la tabla no existe o falla, guardamos localmente como fallback.
+        try {
+            const { error } = await supabase.from('permissions').upsert(payload);
+            if (error) throw error;
+        } catch (err) {
+            console.warn("StateManager: Guardando permiso localmente debido a falta de tabla 'permissions' en DB.", err);
+            const current = JSON.parse(localStorage.getItem('vacaciones_permissions_backup') || '[]');
+            const index = current.findIndex(p => p.id === payload.id);
+            if (index > -1) current[index] = payload; else current.push(payload);
+            localStorage.setItem('vacaciones_permissions_backup', JSON.stringify(current));
+            
+            // Forzar actualización de la data local del StateManager
+            this.data.permissions = current;
+            return payload;
+        }
+
+        await this.init();
+        return payload;
+    },
+
+    async deletePermission(id) {
+        try {
+            const { error } = await supabase.from('permissions').delete().eq('id', id);
+            if (error) throw error;
+        } catch (err) {
+            const current = JSON.parse(localStorage.getItem('vacaciones_permissions_backup') || '[]');
+            const filtered = current.filter(p => p.id !== id);
+            localStorage.setItem('vacaciones_permissions_backup', JSON.stringify(filtered));
+            this.data.permissions = filtered;
+        }
         await this.init();
     },
 

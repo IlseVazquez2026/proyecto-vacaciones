@@ -31,6 +31,7 @@ const UIManager = {
             'nav-history': 'view-history',
             'nav-personnel': 'view-personnel',
             'nav-holidays': 'view-holidays',
+            'nav-permissions': 'view-permissions',
             'nav-config': 'view-config'
         };
 
@@ -97,6 +98,11 @@ const UIManager = {
         const quickVacForm = document.getElementById('quick-vacation-form');
         if (quickVacForm) {
             quickVacForm.onsubmit = (e) => this.handleVacationSubmit(e);
+        }
+
+        const permissionForm = document.getElementById('permission-form');
+        if (permissionForm) {
+            permissionForm.onsubmit = (e) => this.handlePermissionSubmit(e);
         }
 
         const btnUpload = document.getElementById('btn-trigger-upload');
@@ -187,6 +193,7 @@ const UIManager = {
                 break;
             case 'personnel': Visualizer.renderPersonnelPanel(); break;
             case 'holidays': this.renderHolidaysTable(); break;
+            case 'permissions': Visualizer.renderPermissionsView(); break;
             case 'config': Visualizer.renderUserManagement(); break;
         }
     },
@@ -270,6 +277,58 @@ const UIManager = {
             this.refreshView('dashboard');
         } catch (err) { this.showToast(err.message, 'error'); } 
         finally { btn.disabled = false; btn.innerHTML = originalText; }
+    },
+
+    async handlePermissionSubmit(e) {
+        e.preventDefault();
+        const btn = e.target.querySelector('button[type="submit"]');
+        const originalText = btn.innerHTML;
+        
+        const colId = document.getElementById('perm-col-select').value;
+        const date = Visualizer.permissionSelectedDate;
+        const startTime = document.getElementById('perm-start-time').value;
+        const endTime = document.getElementById('perm-end-time').value;
+        const reason = document.getElementById('perm-reason').value;
+
+        if (!colId || !date) {
+            this.showToast('Selecciona colaborador y fecha en el calendario', 'error');
+            return;
+        }
+
+        try {
+            btn.disabled = true; btn.innerHTML = '...';
+            
+            const totalHours = VacationManager.calculateHours(startTime, endTime);
+
+            await StateManager.savePermission({
+                collaboratorid: colId,
+                date: date,
+                start_time: startTime,
+                end_time: endTime,
+                total_hours: totalHours,
+                notes: reason,
+                status: 'approved'
+            });
+
+            this.showToast('Permiso registrado con éxito', 'success');
+            e.target.reset();
+            Visualizer.permissionSelectedDate = null;
+            document.getElementById('perm-selected-date-text').textContent = 'Ninguna fecha seleccionada';
+            Visualizer.renderPermissionsView();
+        } catch (err) {
+            this.showToast('Error: ' + err.message, 'error');
+        } finally {
+            btn.disabled = false; btn.innerHTML = originalText;
+        }
+    },
+
+    async handleDeletePermission(id) {
+        if (!AuthManager.checkPermission('admin')) return;
+        if (confirm('¿Eliminar este registro de permiso?')) {
+            await StateManager.deletePermission(id);
+            this.showToast('Permiso eliminado', 'success');
+            Visualizer.renderPermissionsView();
+        }
     },
 
     showModal(id = null) {

@@ -3,7 +3,10 @@ const Visualizer = {
     currentMonth: new Date().getMonth(),
     miniYear: new Date().getFullYear(),
     miniMonth: new Date().getMonth(),
+    permYear: new Date().getFullYear(),
+    permMonth: new Date().getMonth(),
     selectedDates: [], 
+    permissionSelectedDate: null,
     selectedColId: null,
 
     init() {
@@ -82,6 +85,33 @@ const Visualizer = {
             };
         }
 
+        // Permisos Calendario
+        const pBtnPrev = document.getElementById('perm-cal-prev');
+        const pBtnNext = document.getElementById('perm-cal-next');
+        const pMSelect = document.getElementById('perm-month-select');
+        const pYSelect = document.getElementById('perm-year-select');
+
+        if (pBtnPrev) pBtnPrev.onclick = () => {
+            this.permMonth--;
+            if (this.permMonth < 0) { this.permMonth = 11; this.permYear--; }
+            this.updatePermDateSelectors();
+            this.renderPermissionMiniCalendar();
+        };
+        if (pBtnNext) pBtnNext.onclick = () => {
+            this.permMonth++;
+            if (this.permMonth > 11) { this.permMonth = 0; this.permYear++; }
+            this.updatePermDateSelectors();
+            this.renderPermissionMiniCalendar();
+        };
+        if (pMSelect) pMSelect.onchange = (e) => {
+            this.permMonth = parseInt(e.target.value);
+            this.renderPermissionMiniCalendar();
+        };
+        if (pYSelect) pYSelect.onchange = (e) => {
+            this.permYear = parseInt(e.target.value);
+            this.renderPermissionMiniCalendar();
+        };
+
         // Histórico
         document.getElementById('history-col-select').onchange = (e) => {
             this.selectedColId = e.target.value;
@@ -99,6 +129,8 @@ const Visualizer = {
         const ySelect = document.getElementById('cal-year-select');
         const mmSelect = document.getElementById('mini-month-select');
         const mySelect = document.getElementById('mini-year-select');
+        const pmSelect = document.getElementById('perm-month-select');
+        const pySelect = document.getElementById('perm-year-select');
 
         const mOptions = months.map((m, i) => `<option value="${i}">${m}</option>`).join('');
         const currentY = new Date().getFullYear();
@@ -111,9 +143,12 @@ const Visualizer = {
         if (ySelect) ySelect.innerHTML = yOptions;
         if (mmSelect) mmSelect.innerHTML = mOptions;
         if (mySelect) mySelect.innerHTML = yOptions;
+        if (pmSelect) pmSelect.innerHTML = mOptions;
+        if (pySelect) pySelect.innerHTML = yOptions;
 
         this.updateDateSelectors();
         this.updateMiniDateSelectors();
+        this.updatePermDateSelectors();
     },
 
     updateDateSelectors() {
@@ -124,6 +159,11 @@ const Visualizer = {
     updateMiniDateSelectors() {
         if (document.getElementById('mini-month-select')) document.getElementById('mini-month-select').value = this.miniMonth;
         if (document.getElementById('mini-year-select')) document.getElementById('mini-year-select').value = this.miniYear;
+    },
+
+    updatePermDateSelectors() {
+        if (document.getElementById('perm-month-select')) document.getElementById('perm-month-select').value = this.permMonth;
+        if (document.getElementById('perm-year-select')) document.getElementById('perm-year-select').value = this.permYear;
     },
 
     // --- VISTA 0: DASHBOARD ---
@@ -253,6 +293,7 @@ const Visualizer = {
         `;
 
         const events = VacationManager.getEventsForMonth(this.currentYear, this.currentMonth);
+        const pEvents = VacationManager.getPermissionsForMonth(this.currentYear, this.currentMonth);
         
         const allCols = StateManager.getCollaborators('all').sort((a, b) => String(a.id).localeCompare(String(b.id)));
         const colColorMap = {};
@@ -270,15 +311,24 @@ const Visualizer = {
             
             const hasHoliday = dayEvents.some(e => e.status === 'holiday');
             const totalOnLeave = dayEvents.filter(e => e.status !== 'holiday').length;
+            
+            const dayPermissions = pEvents.filter(p => p.date === dateStr);
+
             const countBadge = (totalOnLeave > 0 && !hasHoliday)
                 ? `<span style="background:var(--primary-color); color:white; border-radius:10px; padding:2px 6px; font-size:0.65rem; font-weight:bold;" title="${totalOnLeave} en vacaciones">${totalOnLeave} <i class="fas fa-users" style="font-size:0.5rem;"></i></span>` 
                 : '';
+            
+            const permBadge = (dayPermissions.length > 0)
+                ? `<span style="background:#f59e0b; color:white; border-radius:10px; padding:2px 6px; font-size:0.65rem; font-weight:bold; margin-left:2px;" title="${dayPermissions.length} permisos registrados">${dayPermissions.length} <i class="fas fa-clock" style="font-size:0.5rem;"></i></span>`
+                : '';
 
             html += `
-                <div class="calendar-day">
                     <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 4px;">
                         <div class="calendar-day-num" style="margin-bottom:0;">${day}</div>
-                        ${countBadge}
+                        <div style="display:flex;">
+                            ${permBadge}
+                            ${countBadge}
+                        </div>
                     </div>
                     <div class="calendar-events-list">
                         ${dayEvents.map(e => {
@@ -300,6 +350,14 @@ const Visualizer = {
                             return `
                             <div class="calendar-event ${cssClass}" style="${inlineStyle}" title="${e.colName}">
                                 ${e.colName}
+                            </div>
+                            `;
+                        }).join('')}
+                        ${dayPermissions.map(p => {
+                            const col = StateManager.getCollaboratorById(p.collaboratorid);
+                            return `
+                            <div class="calendar-event" style="background-color: #fef3c7; color: #92400e; border-left: 4px solid #f59e0b; font-size: 0.7rem; padding: 2px 4px; margin-top:2px;" title="Permiso: ${p.start_time} - ${p.end_time} (${p.notes || ''})">
+                                <i class="fas fa-clock" style="font-size:0.6rem;"></i> ${col ? col.name.split(' ')[0] : 'Permiso'}
                             </div>
                             `;
                         }).join('')}
@@ -698,6 +756,95 @@ const Visualizer = {
         } catch (err) {
             UIManager.showToast('Error al actualizar: ' + err.message, 'error');
         }
+    },
+
+    // --- VISTA 6: PERMISOS ---
+    renderPermissionsView() {
+        const allColabs = StateManager.getCollaborators('active');
+        const select = document.getElementById('perm-col-select');
+        if (select) {
+            select.innerHTML = '<option value="">Selecciona Colaborador...</option>' + 
+                allColabs.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
+        }
+
+        this.renderPermissionMiniCalendar();
+        this.renderPermissionsTable();
+    },
+
+    renderPermissionMiniCalendar() {
+        const container = document.getElementById('permission-mini-calendar');
+        if (!container) return;
+
+        this.updatePermDateSelectors();
+        
+        const firstDay = new Date(this.permYear, this.permMonth, 1).getDay();
+        const daysInMonth = new Date(this.permYear, this.permMonth + 1, 0).getDate();
+        
+        let html = `
+            <div class="mini-calendar-header">
+                <div>D</div><div>L</div><div>M</div><div>M</div><div>J</div><div>V</div><div>S</div>
+            </div>
+        `;
+
+        for (let i = 0; i < firstDay; i++) {
+            html += `<div class="mini-day other-month"></div>`;
+        }
+
+        for (let day = 1; day <= daysInMonth; day++) {
+            const dateStr = `${this.permYear}-${String(this.permMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+            const isWeekend = !VacationManager.isBusinessDay(dateStr);
+            const isSelected = this.permissionSelectedDate === dateStr;
+            
+            html += `
+                <div class="mini-day ${isWeekend ? 'weekend' : ''} ${isSelected ? 'selected' : ''}" 
+                     onclick="Visualizer.selectPermissionDate('${dateStr}', ${isWeekend})">
+                    ${day}
+                </div>
+            `;
+        }
+
+        container.innerHTML = html;
+    },
+
+    selectPermissionDate(dateStr, isWeekend) {
+        if (isWeekend) return;
+        this.permissionSelectedDate = dateStr;
+        const text = document.getElementById('perm-selected-date-text');
+        if (text) text.textContent = 'Fecha: ' + UIManager.formatDate(dateStr);
+        this.renderPermissionMiniCalendar();
+    },
+
+    renderPermissionsTable() {
+        const body = document.getElementById('permissions-table-body');
+        if (!body) return;
+
+        const permissions = StateManager.getPermissions().slice(0, 15); // Top 15 recents
+        body.innerHTML = '';
+
+        if (permissions.length === 0) {
+            body.innerHTML = '<tr><td colspan="5" style="text-align:center; padding:30px; opacity:0.6;">Sin permisos registrados.</td></tr>';
+            return;
+        }
+
+        permissions.forEach(p => {
+            const col = StateManager.getCollaboratorById(p.collaboratorid);
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td>
+                    <div style="font-weight:600;">${col ? col.name : 'Desconocido'}</div>
+                    <div style="font-size:0.7rem; color:var(--text-secondary);">${p.notes || '-'}</div>
+                </td>
+                <td>${UIManager.formatDate(p.date)}</td>
+                <td><span class="status-pill" style="background:#fff7ed; color:#c2410c; border:1px solid #ffedd5;">${p.start_time} - ${p.end_time}</span></td>
+                <td><strong>${p.total_hours}</strong></td>
+                <td>
+                    <button class="btn-icon delete" onclick="UIManager.handleDeletePermission('${p.id}')">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </td>
+            `;
+            body.appendChild(tr);
+        });
     }
 };
 
