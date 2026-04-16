@@ -1180,6 +1180,9 @@ body {
 .is-guest .admin-only {
     display: none !important;
 }
+.is-guest .guest-msg {
+    display: block !important;
+}
 
 /* Mini-Calendar Grid Force */
 .mini-calendar {
