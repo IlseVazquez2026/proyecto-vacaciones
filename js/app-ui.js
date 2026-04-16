@@ -356,9 +356,6 @@ const UIManager = {
         Visualizer.renderPermissionMiniCalendar();
     },
 
-        Visualizer.renderPermissionsView();
-    },
-
     async handleDeleteMonthPermissions(year, month) {
         if (!AuthManager.checkPermission('admin')) return;
         const months = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];

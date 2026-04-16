@@ -895,7 +895,6 @@ const Visualizer = {
             });
         });
     }
-    }
 };
 
 window.Visualizer = Visualizer;
