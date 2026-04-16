@@ -82,9 +82,7 @@
                     <!-- Placeholder to keep layout consistent if needed -->
                 </div>
                 <div class="top-bar-actions">
-                    <button class="btn btn-primary" id="btn-add-collaborator">
-                        <i class="fas fa-plus"></i> Nuevo Colaborador
-                    </button>
+                    <!-- Botones dinámicos si se requiere -->
                 </div>
             </header>
 
@@ -153,9 +151,14 @@
 
                 <!-- 1. COLABORADORES -->
                 <section id="view-collaborators" class="app-view" style="display: none;">
-                    <div class="view-header">
-                        <h1>Administración de Personal</h1>
-                        <p>Gestiona el catálogo base del personal y controla el estatus de contratación.</p>
+                    <div class="view-header" style="display: flex; justify-content: space-between; align-items: center;">
+                        <div>
+                            <h1>Administración de Personal</h1>
+                            <p>Gestiona el catálogo base del personal y controla el estatus de contratación.</p>
+                        </div>
+                        <button class="btn btn-primary admin-only" id="btn-add-collaborator">
+                            <i class="fas fa-plus"></i> Nuevo Colaborador
+                        </button>
                     </div>
 
                     <div class="stats-grid">
