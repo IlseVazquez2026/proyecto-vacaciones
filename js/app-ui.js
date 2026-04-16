@@ -105,6 +105,11 @@ const UIManager = {
             permissionForm.onsubmit = (e) => this.handlePermissionSubmit(e);
         }
 
+        const btnPermCancel = document.getElementById('btn-perm-cancel');
+        if (btnPermCancel) {
+            btnPermCancel.onclick = () => this.handleCancelPermissionEdit();
+        }
+
         const btnUpload = document.getElementById('btn-trigger-upload');
         const fileInput = document.getElementById('historical-file-input');
         const uploadArea = document.getElementById('upload-personnel-area');
@@ -301,6 +306,7 @@ const UIManager = {
             const totalHours = VacationManager.calculateHours(startTime, endTime);
 
             await StateManager.savePermission({
+                id: Visualizer.editingPermissionId, // Si es null, el StateManager generará uno nuevo
                 collaboratorid: colId,
                 date: date,
                 start_time: startTime,
@@ -310,16 +316,44 @@ const UIManager = {
                 status: 'approved'
             });
 
-            this.showToast('Permiso registrado con éxito', 'success');
-            e.target.reset();
-            Visualizer.permissionSelectedDate = null;
-            document.getElementById('perm-selected-date-text').textContent = 'Ninguna fecha seleccionada';
+            this.showToast(Visualizer.editingPermissionId ? 'Permiso actualizado' : 'Permiso registrado', 'success');
+            this.handleCancelPermissionEdit(); // Limpia el formulario y el estado
             Visualizer.renderPermissionsView();
         } catch (err) {
             this.showToast('Error: ' + err.message, 'error');
         } finally {
             btn.disabled = false; btn.innerHTML = originalText;
         }
+    },
+
+    handleEditPermission(id) {
+        const p = StateManager.data.permissions.find(perm => perm.id === id);
+        if (!p) return;
+
+        Visualizer.editingPermissionId = id;
+        Visualizer.permissionSelectedDate = p.date;
+        
+        document.getElementById('perm-col-select').value = p.collaboratorid;
+        document.getElementById('perm-start-time').value = p.start_time;
+        document.getElementById('perm-end-time').value = p.end_time;
+        document.getElementById('perm-reason').value = p.notes || '';
+        document.getElementById('perm-selected-date-text').textContent = 'Fecha: ' + this.formatDate(p.date);
+        
+        // UI Feedback
+        document.getElementById('btn-perm-submit').innerHTML = '<i class="fas fa-save"></i> Guardar Cambios';
+        document.getElementById('btn-perm-cancel').style.display = 'block';
+        
+        Visualizer.renderPermissionMiniCalendar(); // Actualiza selección en mini calendar
+    },
+
+    handleCancelPermissionEdit() {
+        Visualizer.editingPermissionId = null;
+        Visualizer.permissionSelectedDate = null;
+        document.getElementById('permission-form').reset();
+        document.getElementById('perm-selected-date-text').textContent = 'Ninguna fecha seleccionada';
+        document.getElementById('btn-perm-submit').innerHTML = '<i class="fas fa-save"></i> Registrar Permiso';
+        document.getElementById('btn-perm-cancel').style.display = 'none';
+        Visualizer.renderPermissionMiniCalendar();
     },
 
     async handleDeletePermission(id) {

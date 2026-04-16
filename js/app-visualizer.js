@@ -7,6 +7,7 @@ const Visualizer = {
     permMonth: new Date().getMonth(),
     selectedDates: [], 
     permissionSelectedDate: null,
+    editingPermissionId: null,
     selectedColId: null,
 
     init() {
@@ -836,9 +837,14 @@ const Visualizer = {
                     <div style="font-size:0.7rem; color:var(--text-secondary);">${p.notes || '-'}</div>
                 </td>
                 <td>${UIManager.formatDate(p.date)}</td>
-                <td><span class="status-pill" style="background:#fff7ed; color:#c2410c; border:1px solid #ffedd5;">${p.start_time} - ${p.end_time}</span></td>
+                <td style="white-space:nowrap;">
+                    <span class="status-pill" style="background:#fff7ed; color:#c2410c; border:1px solid #ffedd5; white-space:nowrap; display:inline-block;">${p.start_time} - ${p.end_time}</span>
+                </td>
                 <td><strong>${p.total_hours}</strong></td>
                 <td>
+                    <button class="btn-icon edit" onclick="UIManager.handleEditPermission('${p.id}')">
+                        <i class="fas fa-edit"></i>
+                    </button>
                     <button class="btn-icon delete" onclick="UIManager.handleDeletePermission('${p.id}')">
                         <i class="fas fa-trash"></i>
                     </button>

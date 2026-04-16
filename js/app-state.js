@@ -49,6 +49,14 @@ const StateManager = {
                 syncTable('permissions', 'permissions')
             ]);
 
+            // --- REFUERZO DE PERSISTENCIA PARA PERMISOS ---
+            // Si la tabla no existe en Supabase o está vacía, intentamos cargar el backup local
+            const localPerms = localStorage.getItem('vacaciones_permissions_backup');
+            if (localPerms && (!this.data.permissions || this.data.permissions.length === 0)) {
+                this.data.permissions = JSON.parse(localPerms);
+                console.log(`StateManager: ✓ Cargados ${this.data.permissions.length} permisos desde respaldo local.`);
+            }
+
             // Restaurar sesión de usuario (si existe localmente)
             const savedUser = localStorage.getItem('vacaciones_user_session');
             if (savedUser) {
