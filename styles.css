@@ -322,7 +322,7 @@ body {
 
 .top-bar {
     height: var(--header-height);
-    background-color: var(--success-color); /* Cambiado a verde esmeralda */
+    background-color: #6C5CE7; /* Cambiado al morado principal (#6C5CE7) */
     border-bottom: none; /* Quitamos borde para que sea color sólido */
     display: flex;
     align-items: center;
