@@ -244,7 +244,11 @@ const UIManager = {
         if (dashOnLeave) dashOnLeave.textContent = stats.onLeave;
         ['stat-total', 'stat-active', 'stat-on-leave'].forEach(id => {
             const el = document.getElementById(id);
-            if (el) el.textContent = stats[id.replace('stat-', '')];
+            if (el) {
+                const key = id.replace('stat-', '');
+                const finalKey = key === 'on-leave' ? 'onLeave' : key;
+                el.textContent = stats[finalKey] || 0;
+            }
         });
     },
 
