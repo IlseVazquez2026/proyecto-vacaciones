@@ -1162,8 +1162,8 @@ body {
 
 .calendar-day {
     background-color: #fff;
-    min-height: 80px !important;
-    height: 80px !important;
+    min-height: 110px !important;
+    height: 110px !important;
     padding: 8px;
     display: flex;
     flex-direction: column;
