@@ -183,7 +183,7 @@ const Visualizer = {
         }
 
         this.renderMiniCalendar();
-        this.renderUpcomingLeaves();
+        this.renderRecentRequests();
     },
 
     renderMiniCalendar() {
@@ -236,39 +236,45 @@ const Visualizer = {
         if (count) count.textContent = this.selectedDates.length;
     },
 
-    renderUpcomingLeaves() {
+    renderRecentRequests() {
         const container = document.getElementById('upcoming-list');
-        const days = StateManager.data.vacationdays || [];
-        const today = new Date();
-        today.setHours(0,0,0,0);
+        const requests = [...(StateManager.data.vacationrequests || [])];
+        
+        // Sort by ID descending (newest first, since id is req-timestamp)
+        requests.sort((a,b) => {
+            const timeA = parseInt(a.id.split('-')[1]) || 0;
+            const timeB = parseInt(b.id.split('-')[1]) || 0;
+            return timeB - timeA;
+        });
 
-        const futureDays = days.filter(d => {
-            const date = new Date(d.actualdate + 'T12:00:00');
-            return date >= today && (d.status === 'approved' || d.status === 'programmed');
-        }).sort((a,b) => new Date(a.actualdate + 'T12:00:00') - new Date(b.actualdate + 'T12:00:00'));
+        const recent10 = requests.slice(0, 10);
 
-        const uniqueRequests = [...new Set(futureDays.map(d => d.requestid))].slice(0, 5);
-
-        if (uniqueRequests.length === 0) {
-            container.innerHTML = '<p style="text-align:center; padding:20px; opacity:0.5;">No hay salidas próximas.</p>';
+        if (recent10.length === 0) {
+            container.innerHTML = '<p style="text-align:center; padding:20px; opacity:0.5;">No hay registros recientes.</p>';
             return;
         }
 
-        container.innerHTML = uniqueRequests.map(reqId => {
-            const req = StateManager.data.vacationrequests.find(r => r.id === reqId);
+        container.innerHTML = recent10.map(req => {
             const col = StateManager.getCollaboratorById(req.collaboratorid);
-            const firstDay = futureDays.find(d => d.requestid === reqId);
-            const startDate = new Date(firstDay.actualdate + 'T12:00:00');
+            const days = StateManager.data.vacationdays.filter(d => d.requestid === req.id);
+            days.sort((a,b) => new Date(a.actualdate + 'T12:00:00') - new Date(b.actualdate + 'T12:00:00'));
+            
+            const startDateStr = days.length > 0 ? UIManager.formatDate(days[0].actualdate) : 'N/A';
+            const creationDate = new Date(parseInt(req.id.split('-')[1]));
+            const creationDateFmt = isNaN(creationDate) ? 'N/A' : new Intl.DateTimeFormat('es-ES', {month: 'short', day: 'numeric'}).format(creationDate).toUpperCase();
             
             return `
-                <div class="upcoming-item">
-                    <div class="upcoming-date">
-                        ${startDate.toLocaleDateString('es-ES', {month: 'short'}).toUpperCase()}
-                        <strong>${startDate.getDate()}</strong>
+                <div class="upcoming-item" style="display:flex; align-items:center;">
+                    <div class="upcoming-date" style="padding: 10px; background:#f8fafc; border:1px solid #e2e8f0;">
+                        <span style="font-size:0.55rem; display:block; color:#64748b; font-weight:600;">FECHA SOLICITUD</span>
+                        <strong style="color:var(--primary-color);">${creationDateFmt}</strong>
                     </div>
                     <div class="upcoming-info">
-                        <div style="font-weight:600;">${col ? col.name : 'Desconocido'}</div>
-                        <div style="font-size:0.75rem; color:var(--text-secondary);">${req.dayscount} días en este periodo</div>
+                        <div style="font-weight:600; font-size:0.9rem;">${col ? col.name : 'Desconocido'}</div>
+                        <div style="font-size:0.75rem; color:var(--text-secondary);">
+                            <i class="fas fa-calendar-alt"></i> Salida: ${startDateStr} <br>
+                            <i class="fas fa-sun"></i> ${req.dayscount} ${req.dayscount === 1 ? 'día' : 'días'} solicitados
+                        </div>
                     </div>
                 </div>
             `;
