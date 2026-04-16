@@ -323,6 +323,7 @@ const Visualizer = {
                 : '';
 
             html += `
+                <div class="calendar-day">
                     <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 4px;">
                         <div class="calendar-day-num" style="margin-bottom:0;">${day}</div>
                         <div style="display:flex;">
