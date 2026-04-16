@@ -85,6 +85,11 @@ const AuthManager = {
             document.querySelector('.user-role').textContent = isAdmin ? 'Administrador' : 'Invitado';
             document.querySelector('.avatar').textContent = user.name.substring(0, 2).toUpperCase();
         }
+        
+        // Redirigir invitado si está en una vista bloqueada
+        if (!isAdmin && UIManager.currentView !== 'vacations' && UIManager.currentView !== 'permissions') {
+            UIManager.navigate('nav-vacations');
+        }
     },
 
     checkPermission(action) {

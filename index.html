@@ -21,11 +21,11 @@
                 </div>
             </div>
             <nav class="sidebar-menu">
-                <a href="#" class="menu-item" id="nav-dashboard">
+                <a href="#" class="menu-item admin-only" id="nav-dashboard">
                     <i class="fas fa-edit"></i>
                     <span>Registro</span>
                 </a>
-                <a href="#" class="menu-item" id="nav-collaborators">
+                <a href="#" class="menu-item admin-only" id="nav-collaborators">
                     <i class="fas fa-user-friends"></i>
                     <span>Colaboradores</span>
                 </a>
@@ -33,15 +33,15 @@
                     <i class="fas fa-calendar-alt"></i>
                     <span>Calendario</span>
                 </a>
-                <a href="#" class="menu-item" id="nav-personnel">
+                <a href="#" class="menu-item admin-only" id="nav-personnel">
                     <i class="fas fa-chart-pie"></i>
                     <span>Panel General</span>
                 </a>
-                <a href="#" class="menu-item" id="nav-history">
+                <a href="#" class="menu-item admin-only" id="nav-history">
                     <i class="fas fa-history"></i>
                     <span>Histórico</span>
                 </a>
-                <a href="#" class="menu-item" id="nav-holidays">
+                <a href="#" class="menu-item admin-only" id="nav-holidays">
                     <i class="fas fa-holly-berry"></i>
                     <span>Días Festivos</span>
                 </a>
@@ -49,8 +49,8 @@
                     <i class="fas fa-clock"></i>
                     <span>Permisos</span>
                 </a>
-                <div class="menu-divider"></div>
-                <a href="#" class="menu-item" id="nav-config">
+                <div class="menu-divider admin-only"></div>
+                <a href="#" class="menu-item admin-only" id="nav-config">
                     <i class="fas fa-cog"></i>
                     <span>Configuración</span>
                 </a>
@@ -410,8 +410,8 @@
                         <p>Gestión de permisos por horas o salidas especiales del personal.</p>
                     </div>
 
-                    <div class="dashboard-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 30px; margin-top: 30px;">
-                        <div class="card" style="padding: 25px;">
+                    <div class="dashboard-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); gap: 30px; margin-top: 30px;">
+                        <div class="card admin-only" style="padding: 25px;">
                             <h3 style="margin-top: 0; margin-bottom: 20px;"><i class="fas fa-id-badge" style="color:var(--primary-color);"></i> Nueva Solicitud de Permiso</h3>
                             <form id="permission-form">
                                 <div class="form-group" style="margin-bottom: 20px;">
