@@ -372,151 +372,155 @@ const Visualizer = {
                             <th>Balance</th>
                         </tr>
                     </thead>
-                    <tbody>
-                        ${balance.periods.map(p => `
-                            <tr style="${p.isEarned ? '' : 'background-color: #fff5f5;'}">
-                                <td>
-                                    <strong style="color: ${p.isEarned ? 'inherit' : '#dc2626'}">Año ${p.year}</strong>
-                                    ${p.isEarned ? '' : '<span style="display:block; font-size: 0.65rem; color: #dc2626; font-weight: 700;">ANTICIPO</span>'}
-                                </td>
-                                <td>${p.label}</td>
-                                <td>${new Date(p.activationDate + 'T12:00:00').toLocaleDateString()}</td>
-                                <td>${p.days}</td>
-                                <td style="color: var(--secondary-color); font-weight: 600;">${p.used}</td>
-                                <td><strong style="color: ${p.balance > 0 ? 'var(--success-color)' : 'var(--text-secondary)'}">${p.balance}</strong></td>
-                            </tr>
-                        `).join('')}
-                    </tbody>
-                </table>
-                </div>
-            </div>
-            
-            <div class="periods-timeline" style="display: flex; flex-direction: column; gap: 30px;">
-                ${(() => {
-                    const seenDates = new Set();
-                    return [...balance.periods].reverse().map(p => {
-                        const progress = (p.used / p.days) * 100;
-                    return `
-                    <div class="card period-card" style="padding: 0; overflow: hidden; border: 1px solid var(--border-color); border-left: 5px solid ${p.isEarned ? (p.balance > 0 ? 'var(--primary-color)' : '#cbd5e0') : '#dc2626'};">
-                        <div class="period-header" style="padding: 20px 25px; background-color: ${p.isEarned ? '#f9f9fb' : '#fef2f2'}; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center;">
-                            <div>
-                                <h3 style="margin:0; color: ${p.isEarned ? 'inherit' : '#dc2626'}">
-                                    AÑO ${p.year} <small style="font-weight: normal; opacity: 0.6;">(${p.label})</small>
-                                    ${p.isEarned ? '' : '<span style="margin-left: 10px; font-size: 0.7rem; background: #dc2626; color: white; padding: 2px 6px; border-radius: 4px; vertical-align: middle;">ANTICIPO</span>'}
-                                </h3>
-                                <p style="margin:5px 0 0; font-size: 0.75rem; color: ${p.isEarned ? 'var(--text-secondary)' : '#b91c1c'};">
-                                    ${p.isEarned ? 'Activación legal:' : '⚠️ ADEUDADO / ADELANTO (Activa:'} <strong>${new Date(p.activationDate + 'T12:00:00').toLocaleDateString()}</strong>${p.isEarned ? '' : ')'}
-                                </p>
-                            </div>
-                            <div style="text-align: right;">
-                                <div style="font-size: 0.7rem; text-transform: uppercase; color: var(--text-secondary);">Días Asignados 
-                                    <button class="btn-icon admin-only" onclick="Visualizer.editPeriodDays(${p.year}, ${p.days})" style="display:inline-flex; width:20px; height:20px; padding:0; justify-content:center; align-items:center;"><i class="fas fa-pencil-alt" style="font-size:0.6rem;"></i></button>
-                                </div>
-                                <div style="font-size: 1.5rem; font-weight: 700; color: var(--primary-color);">${p.days}</div>
-                            </div>
-                        </div>
-
-                        <div class="period-body" style="padding: 25px;">
-                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-                                <div style="flex: 1; max-width: 400px;">
-                                    <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
-                                        <div style="font-size: 0.8rem; font-weight: 600;">Consumo del periodo</div>
-                                        <div style="font-size: 0.8rem;">
-                                            <span style="color: var(--success-color); font-weight: 700;">${p.balance} disponibles</span>
-                                        </div>
-                                    </div>
-                                    <div class="progress-bar" style="height: 6px; background-color: #eee; border-radius: 3px; overflow: hidden;">
-                                        <div style="width: ${progress}%; height: 100%; background-color: var(--secondary-color);"></div>
-                                    </div>
-                                </div>
-                                <div style="color:var(--text-secondary); font-size:0.8rem; font-style: italic;">
-                                    Consumo FIFO por antigüedad
-                                </div>
-                            </div>
-
-                            <div class="table-container">
-                            <table class="day-breakdown-table" style="margin: 0;">
-                                <thead>
-                                    <tr>
-                                        <th style="width: 160px;">Fecha</th>
-                                        <th style="width: 140px;">Estatus</th>
-                                        <th>Notas / Observaciones</th>
-                                        <th style="width: 160px;">Periodo Asignado</th>
-                                        <th style="width: 50px;" class="admin-only"></th>
-                                    </tr>
-                                </thead>
                                 <tbody>
-                                    ${p.daysList.length === 0 ? '<tr><td colspan="5" style="text-align:center; padding:15px; opacity:0.5;">Sin días consumidos de este periodo                                     ${[...p.daysList]
-                                        .sort((a, b) => new Date(b.actualdate + 'T12:00:00') - new Date(a.actualdate + 'T12:00:00'))
-                                        .map(d => {
-                                            const isDuplicate = seenDates.has(d.actualdate);
-                                            seenDates.add(d.actualdate);
-                                            
-                                            let rowStyle = '';
-                                            if (isDuplicate) {
-                                                rowStyle = 'background-color: #fef9c3; border-left: 4px solid #eab308;';
-                                            } else if (!d.isBusinessDay) {
-                                                rowStyle = 'background-color: #fef2f2; border-left: 4px solid #ef4444;';
-                                            }
-
-                                            return `
-                                            <tr style="${rowStyle}">
-                                                <td style="white-space: nowrap;">
-                                                    <div style="display: flex; align-items: center; gap: 8px;">
-                                                        <strong style="${isDuplicate ? 'color: #854d0e;' : (!d.isBusinessDay ? 'color: #b91c1c;' : '')}">${new Date(d.actualdate + 'T12:00:00').toLocaleDateString()}</strong>
-                                                        <button class="btn-icon admin-only" onclick="Visualizer.editDayDate('${d.id}', '${d.actualdate}')" style="width:20px; height:20px;" title="Editar Fecha">
-                                                            <i class="fas fa-pencil-alt" style="font-size:0.6rem;"></i>
-                                                        </button>
-                                                    </div>
-                                                    ${isDuplicate ? '<span style="display:block; font-size: 0.65rem; color: #854d0e; font-weight: 600; margin-top: 2px;">⚠️ DUPLICADO: Ya existe este día</span>' : ''}
-                                                    ${(!d.isBusinessDay && !isDuplicate) ? '<span style="display:block; font-size: 0.65rem; color: #b91c1c; font-weight: 600; margin-top: 2px;">⚠️ ERROR: Fin de semana</span>' : ''}
-                                                </td>                  </td>
+                                    ${balance.periods.map(p => `
+                                        <tr style="${p.isEarned ? '' : 'background-color: #fff5f5;'}">
                                             <td>
-                                                <div class="admin-only">
-                                                    <select class="status-select input-field" style="padding:2px; font-size:0.75rem; height:auto; width:100%; ${!d.isBusinessDay ? 'border-color: #ef4444;' : ''}" onchange="Visualizer.updateDayStatus('${d.id}', this.value)">
-                                                        <option value="approved" ${d.status === 'approved' ? 'selected' : ''}>Aprobado</option>
-                                                        <option value="programmed" ${d.status === 'programmed' ? 'selected' : ''}>Programado</option>
-                                                        <option value="cancelled" ${d.status === 'cancelled' ? 'selected' : ''}>Cancelado</option>
-                                                    </select>
-                                                </div>
-                                                <div class="guest-only">
-                                                    <span class="status-pill pill-${d.status}" style="font-size: 0.65rem;">${d.status.toUpperCase()}</span>
-                                                </div>
+                                                <strong style="color: ${p.isEarned ? 'inherit' : '#dc2626'}">Año ${p.year}</strong>
+                                                ${p.isEarned ? '' : '<span style="display:block; font-size: 0.65rem; color: #dc2626; font-weight: 700;">ANTICIPO</span>'}
                                             </td>
-                                            <td>
-                                                <input type="text" class="note-input admin-only" value="${d.notes || ''}" 
-                                                       placeholder="Agregar nota..." 
-                                                       onblur="Visualizer.updateDayNote('${d.id}', this.value)" style="width: 100%;">
-                                                <span class="guest-only" style="font-size: 0.8rem; color: #666;">${d.notes || ''}</span>
-                                            </td>
-                                            <td>
-                                                <div class="admin-only">
-                                                    <select class="status-select input-field" style="padding:2px; font-size:0.75rem; height:auto; width:100%; color: ${d.isManual ? 'var(--primary-color)' : 'inherit'}; font-weight: ${d.isManual ? '600' : 'normal'}" 
-                                                        onchange="Visualizer.updateDayPeriod('${d.id}', this.value)">
-                                                        <option value="">Auto (FIFO)</option>
-                                                        ${balance.periods.map(per => `
-                                                            <option value="${per.year}" ${parseInt(d.period_override) === per.year ? 'selected' : ''}>Año ${per.year}</option>
-                                                        `).join('')}
-                                                    </select>
-                                                </div>
-                                                <div class="guest-only" style="font-size: 0.75rem;">
-                                                    ${d.period_override ? 'Año ' + d.period_override : 'Automático'}
-                                                </div>
-                                            </td>
-                                            <td class="admin-only">
-                                                <button class="btn-icon delete" onclick="Visualizer.deleteSingleDay('${d.id}')" title="Borrar">
-                                                    <i class="fas fa-times"></i>
-                                                </button>
-                                            </td>
+                                            <td>${p.label}</td>
+                                            <td>${new Date(p.activationDate + 'T12:00:00').toLocaleDateString()}</td>
+                                            <td>${p.days}</td>
+                                            <td style="color: var(--secondary-color); font-weight: 600;">${p.used}</td>
+                                            <td><strong style="color: ${p.balance > 0 ? 'var(--success-color)' : 'var(--text-secondary)'}">${p.balance}</strong></td>
                                         </tr>
                                     `).join('')}
                                 </tbody>
                             </table>
                             </div>
                         </div>
-                    </div>
-                    `;
-                }).join('')})()}
+                        
+            <div class="periods-timeline" style="display: flex; flex-direction: column; gap: 30px;">
+                ${(() => {
+                    const seenDates = new Set();
+                    return [...balance.periods].reverse().map(p => {
+                        const progress = (p.used / p.days) * 100;
+                        
+                        // Generar el desglose de días para este periodo
+                        const daysRows = [...p.daysList]
+                            .sort((a, b) => new Date(b.actualdate + 'T12:00:00') - new Date(a.actualdate + 'T12:00:00'))
+                            .map(d => {
+                                const isDuplicate = seenDates.has(d.actualdate);
+                                seenDates.add(d.actualdate);
+                                
+                                let rowStyle = '';
+                                if (isDuplicate) {
+                                    rowStyle = 'background-color: #fef9c3; border-left: 4px solid #eab308;';
+                                } else if (!d.isBusinessDay) {
+                                    rowStyle = 'background-color: #fef2f2; border-left: 4px solid #ef4444;';
+                                }
+
+                                return `
+                                <tr style="${rowStyle}">
+                                    <td style="white-space: nowrap;">
+                                        <div style="display: flex; align-items: center; gap: 8px;">
+                                            <strong style="${isDuplicate ? 'color: #854d0e;' : (!d.isBusinessDay ? 'color: #b91c1c;' : '')}">${new Date(d.actualdate + 'T12:00:00').toLocaleDateString()}</strong>
+                                            <button class="btn-icon admin-only" onclick="Visualizer.editDayDate('${d.id}', '${d.actualdate}')" style="width:20px; height:20px;" title="Editar Fecha">
+                                                <i class="fas fa-pencil-alt" style="font-size:0.6rem;"></i>
+                                            </button>
+                                        </div>
+                                        ${isDuplicate ? '<span style="display:block; font-size: 0.65rem; color: #854d0e; font-weight: 600; margin-top: 2px;">⚠️ DUPLICADO</span>' : ''}
+                                        ${(!d.isBusinessDay && !isDuplicate) ? '<span style="display:block; font-size: 0.65rem; color: #b91c1c; font-weight: 600; margin-top: 2px;">⚠️ FIN DE SEMANA</span>' : ''}
+                                    </td>
+                                    <td>
+                                        <div class="admin-only">
+                                            <select class="status-select input-field" style="padding:2px; font-size:0.75rem; height:auto; width:100%; ${!d.isBusinessDay ? 'border-color: #ef4444;' : ''}" onchange="Visualizer.updateDayStatus('${d.id}', this.value)">
+                                                <option value="approved" ${d.status === 'approved' ? 'selected' : ''}>Aprobado</option>
+                                                <option value="programmed" ${d.status === 'programmed' ? 'selected' : ''}>Programado</option>
+                                                <option value="cancelled" ${d.status === 'cancelled' ? 'selected' : ''}>Cancelado</option>
+                                            </select>
+                                        </div>
+                                        <div class="guest-only">
+                                            <span class="status-pill pill-${d.status}" style="font-size: 0.65rem;">${d.status.toUpperCase()}</span>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <input type="text" class="note-input admin-only" value="${d.notes || ''}" 
+                                               placeholder="Agregar nota..." 
+                                               onblur="Visualizer.updateDayNote('${d.id}', this.value)" style="width: 100%;">
+                                        <span class="guest-only" style="font-size: 0.8rem; color: #666;">${d.notes || ''}</span>
+                                    </td>
+                                    <td>
+                                        <div class="admin-only">
+                                            <select class="status-select input-field" style="padding:2px; font-size:0.75rem; height:auto; width:100%; color: ${d.isManual ? 'var(--primary-color)' : 'inherit'}; font-weight: ${d.isManual ? '600' : 'normal'}" 
+                                                onchange="Visualizer.updateDayPeriod('${d.id}', this.value)">
+                                                <option value="">Auto (FIFO)</option>
+                                                ${balance.periods.map(per => `
+                                                    <option value="${per.year}" ${parseInt(d.period_override) === per.year ? 'selected' : ''}>Año ${per.year}</option>
+                                                `).join('')}
+                                            </select>
+                                        </div>
+                                        <div class="guest-only" style="font-size: 0.75rem;">
+                                            ${d.period_override ? 'Año ' + d.period_override : 'Automático'}
+                                        </div>
+                                    </td>
+                                    <td class="admin-only">
+                                        <button class="btn-icon delete" onclick="Visualizer.deleteSingleDay('${d.id}')" title="Borrar">
+                                            <i class="fas fa-times"></i>
+                                        </button>
+                                    </td>
+                                </tr>`;
+                            }).join('');
+
+                        return `
+                        <div class="card period-card" style="padding: 0; overflow: hidden; border: 1px solid var(--border-color); border-left: 5px solid ${p.isEarned ? (p.balance > 0 ? 'var(--primary-color)' : '#cbd5e0') : '#dc2626'};">
+                            <div class="period-header" style="padding: 20px 25px; background-color: ${p.isEarned ? '#f9f9fb' : '#fef2f2'}; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center;">
+                                <div>
+                                    <h3 style="margin:0; color: ${p.isEarned ? 'inherit' : '#dc2626'}">
+                                        AÑO ${p.year} <small style="font-weight: normal; opacity: 0.6;">(${p.label})</small>
+                                        ${p.isEarned ? '' : '<span style="margin-left: 10px; font-size: 0.7rem; background: #dc2626; color: white; padding: 2px 6px; border-radius: 4px; vertical-align: middle;">ANTICIPO</span>'}
+                                    </h3>
+                                    <p style="margin:5px 0 0; font-size: 0.75rem; color: ${p.isEarned ? 'var(--text-secondary)' : '#b91c1c'};">
+                                        ${p.isEarned ? 'Activación legal:' : '⚠️ ADEUDADO / ADELANTO (Activa:'} <strong>${new Date(p.activationDate + 'T12:00:00').toLocaleDateString()}</strong>${p.isEarned ? '' : ')'}
+                                    </p>
+                                </div>
+                                <div style="text-align: right;">
+                                    <div style="font-size: 0.7rem; text-transform: uppercase; color: var(--text-secondary);">Días Asignados 
+                                        <button class="btn-icon admin-only" onclick="Visualizer.editPeriodDays(${p.year}, ${p.days})" style="display:inline-flex; width:20px; height:20px; padding:0; justify-content:center; align-items:center;"><i class="fas fa-pencil-alt" style="font-size:0.6rem;"></i></button>
+                                    </div>
+                                    <div style="font-size: 1.5rem; font-weight: 700; color: var(--primary-color);">${p.days}</div>
+                                </div>
+                            </div>
+
+                            <div class="period-body" style="padding: 25px;">
+                                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                                    <div style="flex: 1; max-width: 400px;">
+                                        <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+                                            <div style="font-size: 0.8rem; font-weight: 600;">Consumo del periodo</div>
+                                            <div style="font-size: 0.8rem;">
+                                                <span style="color: var(--success-color); font-weight: 700;">${p.balance} disponibles</span>
+                                            </div>
+                                        </div>
+                                        <div class="progress-bar" style="height: 6px; background-color: #eee; border-radius: 3px; overflow: hidden;">
+                                            <div style="width: ${progress}%; height: 100%; background-color: var(--secondary-color);"></div>
+                                        </div>
+                                    </div>
+                                    <div style="color:var(--text-secondary); font-size:0.8rem; font-style: italic;">
+                                        Consumo FIFO por antigüedad
+                                    </div>
+                                </div>
+
+                                <div class="table-container">
+                                    <table class="day-breakdown-table" style="margin: 0;">
+                                        <thead>
+                                            <tr>
+                                                <th style="width: 160px;">Fecha</th>
+                                                <th style="width: 140px;">Estatus</th>
+                                                <th>Notas</th>
+                                                <th style="width: 160px;">Asignación</th>
+                                                <th style="width: 50px;" class="admin-only"></th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            ${p.daysList.length === 0 ? '<tr><td colspan="5" style="text-align:center; padding:15px; opacity:0.5;">Sin días consumidos.</td></tr>' : daysRows}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>`;
+                    }).join('');
+                })()}
             </div>
         `;
 

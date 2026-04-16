@@ -544,11 +544,28 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="js/supabase-config.js"></script>
     <script src="js/xlsx.js"></script>
-    <script src="js/state.js"></script>
-    <script src="js/engine.js"></script>
-    <script src="js/auth.js"></script>
-    <script src="js/visualizer.js"></script>
-    <script src="js/ui.js"></script>
-    <script src="js/app.js"></script>
+    <script src="js/app-state.js"></script>
+    <script src="js/app-engine.js"></script>
+    <script src="js/app-auth.js"></script>
+    <script src="js/app-visualizer.js"></script>
+    <script src="js/app-ui.js"></script>
+    <script src="js/app-main.js"></script>
+    <script>
+        // Diagnóstico post-carga
+        window.addEventListener('load', () => {
+            const modules = {
+                'Supabase': typeof supabase !== 'undefined',
+                'StateManager': typeof StateManager !== 'undefined',
+                'AuthManager': typeof AuthManager !== 'undefined',
+                'Visualizer': typeof Visualizer !== 'undefined',
+                'UIManager': typeof UIManager !== 'undefined'
+            };
+            console.log('Diagnostic Report:', modules);
+            const missing = Object.keys(modules).filter(m => !modules[m]);
+            if (missing.length > 0) {
+                console.error('CRITICAL: Missing modules:', missing);
+            }
+        });
+    </script>
 </body>
 </html>
