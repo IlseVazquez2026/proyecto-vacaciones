@@ -883,7 +883,7 @@ const Visualizer = {
                     </td>
                     <td><strong>${p.total_hours}</strong></td>
                     <td>
-                        <button class="btn-icon edit" onclick="UIManager.handleEditPermission('${p.id}')" title="Editar">
+                        <button class="btn-icon edit admin-only" onclick="UIManager.handleEditPermission('${p.id}')" title="Editar">
                             <i class="fas fa-edit"></i>
                         </button>
                         <button class="btn-icon delete" onclick="UIManager.handleDeletePermission('${p.id}')" title="Borrar">
