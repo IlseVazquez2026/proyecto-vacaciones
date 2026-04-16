@@ -351,11 +351,15 @@ const StateManager = {
             const { error } = await supabase.from('permissions').delete().eq('id', id);
             if (error) throw error;
         } catch (err) {
-            const current = JSON.parse(localStorage.getItem('vacaciones_permissions_backup') || '[]');
-            const filtered = current.filter(p => p.id !== id);
-            localStorage.setItem('vacaciones_permissions_backup', JSON.stringify(filtered));
-            this.data.permissions = filtered;
+            console.warn("StateManager: Error en nube, procediendo con borrado local.", err);
         }
+        
+        // --- Siempre borrar del respaldo local ---
+        const current = JSON.parse(localStorage.getItem('vacaciones_permissions_backup') || '[]');
+        const filtered = current.filter(p => p.id !== id);
+        localStorage.setItem('vacaciones_permissions_backup', JSON.stringify(filtered));
+        this.data.permissions = filtered;
+        
         await this.init();
     },
 
@@ -368,12 +372,15 @@ const StateManager = {
             const { error } = await supabase.from('permissions').delete().like('date', `${targetPrefix}%`);
             if (error) throw error;
         } catch (err) {
-            console.warn("StateManager: Error o falta de tabla al borrar por mes en DB. Usando local.", err);
-            const current = JSON.parse(localStorage.getItem('vacaciones_permissions_backup') || '[]');
-            const filtered = current.filter(p => !p.date.startsWith(targetPrefix));
-            localStorage.setItem('vacaciones_permissions_backup', JSON.stringify(filtered));
-            this.data.permissions = filtered;
+            console.warn("StateManager: Error o falta de tabla al borrar por mes en DB.", err);
         }
+        
+        // --- Siempre borrar del respaldo local ---
+        const current = JSON.parse(localStorage.getItem('vacaciones_permissions_backup') || '[]');
+        const filtered = current.filter(p => !p.date.startsWith(targetPrefix));
+        localStorage.setItem('vacaciones_permissions_backup', JSON.stringify(filtered));
+        this.data.permissions = filtered;
+        
         await this.init();
     },
 
