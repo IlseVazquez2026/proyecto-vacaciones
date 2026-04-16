@@ -876,27 +876,28 @@ const Visualizer = {
             `;
             body.appendChild(headerTr);
 
-            // Renderizar filas del mes
             perms.forEach(p => {
                 const col = StateManager.getCollaboratorById(p.collaboratorid);
                 const tr = document.createElement('tr');
                 tr.innerHTML = `
-                    <td style="padding-left: 25px;">
+                    <td style="padding: 8px 15px; padding-left: 25px;">
                         <div style="font-weight:600;">${col ? col.name : 'Desconocido'}</div>
-                        <div style="font-size:0.7rem; color:var(--text-secondary);">${p.notes || '-'}</div>
+                        <div style="font-size:0.7rem; color:var(--text-secondary);">${p.notes || ''}</div>
                     </td>
-                    <td>${UIManager.formatDate(p.date)}</td>
-                    <td style="white-space:nowrap;">
-                        <span class="status-pill" style="background:#fff7ed; color:#c2410c; border:1px solid #ffedd5; white-space:nowrap; display:inline-block;">${p.start_time} - ${p.end_time}</span>
+                    <td style="padding: 8px 15px;">${UIManager.formatDate(p.date)}</td>
+                    <td style="padding: 8px 15px; white-space:nowrap;">
+                        <span class="status-pill" style="background:#fff7ed; color:#c2410c; border:1px solid #ffedd5; white-space:nowrap; display:inline-block; padding: 2px 8px;">${p.start_time} - ${p.end_time}</span>
                     </td>
-                    <td><strong>${p.total_hours}</strong></td>
-                    <td>
-                        <button class="btn-icon edit admin-only" onclick="UIManager.handleEditPermission('${p.id}')" title="Editar">
-                            <i class="fas fa-edit"></i>
-                        </button>
-                        <button class="btn-icon delete" onclick="UIManager.handleDeletePermission('${p.id}')" title="Borrar">
-                            <i class="fas fa-trash"></i>
-                        </button>
+                    <td style="padding: 8px 15px;"><strong>${p.total_hours}</strong></td>
+                    <td style="padding: 8px 15px;">
+                        <div style="display: flex; gap: 4px; align-items: center;">
+                            <button class="btn-icon edit admin-only" onclick="UIManager.handleEditPermission('${p.id}')" title="Editar" style="padding: 4px; font-size: 0.8rem;">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <button class="btn-icon delete admin-only" onclick="UIManager.handleDeletePermission('${p.id}')" title="Borrar" style="padding: 4px; font-size: 0.8rem;">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
                     </td>
                 `;
                 body.appendChild(tr);
