@@ -381,14 +381,21 @@ const Visualizer = {
     },
 
     populateColSelect() {
-        const select = document.getElementById('history-col-select');
-        if (!select) return;
-        const cols = StateManager.getCollaborators('all');
+        const historySelect = document.getElementById('history-col-select');
+        const exportSelect = document.getElementById('export-individual-select');
         
-        select.innerHTML = '<option value="">Selecciona un colaborador...</option>' + 
+        const cols = StateManager.getCollaborators('all');
+        const optionsHtml = '<option value="">Selecciona un colaborador...</option>' + 
             cols.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
-            
-        if (this.selectedColId) select.value = this.selectedColId;
+
+        if (historySelect) {
+            historySelect.innerHTML = optionsHtml;
+            if (this.selectedColId) historySelect.value = this.selectedColId;
+        }
+
+        if (exportSelect) {
+            exportSelect.innerHTML = optionsHtml;
+        }
     },
 
     renderHistory() {

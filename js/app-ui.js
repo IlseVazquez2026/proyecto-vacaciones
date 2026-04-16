@@ -157,6 +157,13 @@ const UIManager = {
                 if (AuthManager.checkPermission('admin')) this.handleExportAllHistory();
             };
         }
+
+        const btnExportInd = document.getElementById('btn-export-individual');
+        if (btnExportInd) {
+            btnExportInd.onclick = () => {
+                if (AuthManager.checkPermission('admin')) this.handleIndividualExport();
+            };
+        }
     },
 
     navigate(navId, params = null) {
@@ -711,10 +718,33 @@ const UIManager = {
     handleExportAllHistory() {
         const days = StateManager.data.vacationdays || [];
         const collaborators = StateManager.getCollaborators('all');
+        this.processAndDownloadHistory(days, collaborators, `Historial_Vacaciones_Global_${new Date().toISOString().split('T')[0]}`);
+    },
+
+    handleIndividualExport() {
+        const colId = document.getElementById('export-individual-select').value;
+        if (!colId) {
+            this.showToast('Por favor selecciona un colaborador', 'error');
+            return;
+        }
+
+        const col = StateManager.getCollaboratorById(colId);
+        if (!col) return;
+
+        const allDays = StateManager.data.vacationdays || [];
+        const individualDays = allDays.filter(d => d.collaboratorid === colId);
         
-        // 1. Crear mapa global de Día -> Periodo
+        if (individualDays.length === 0) {
+            this.showToast(`El colaborador ${col.name} no tiene historial de vacaciones registrado.`, 'info');
+            return;
+        }
+
+        this.processAndDownloadHistory(individualDays, [col], `Historial_${col.name.replace(/\s+/g, '_')}_${col.id}`);
+    },
+
+    // Helper para procesar y descargar (evita duplicar lógica)
+    processAndDownloadHistory(days, collaborators, filename) {
         const dayPeriodMap = {};
-        
         collaborators.forEach(col => {
             const balance = VacationManager.getCollaboratorBalance(col.id);
             if (balance && balance.periods) {
@@ -729,26 +759,17 @@ const UIManager = {
         });
 
         const data = [["ID Empleado", "Nombre", "Fecha", "Periodo Asignado", "Estatus", "Notas"]];
-        
-        // Ordenar días por fecha descendente para el Excel
         const sortedDays = [...days].sort((a,b) => new Date(b.actualdate + 'T12:00:00') - new Date(a.actualdate + 'T12:00:00'));
 
         sortedDays.forEach(d => {
             const col = StateManager.getCollaboratorById(d.collaboratorid);
             if (col) {
                 const periodLabel = dayPeriodMap[d.id] || (d.status === 'cancelled' ? 'Cancelado' : 'N/A (Excedente)');
-                data.push([
-                    col.id, 
-                    col.name, 
-                    this.formatDate(d.actualdate), 
-                    periodLabel,
-                    d.status, 
-                    d.notes || ''
-                ]);
+                data.push([col.id, col.name, this.formatDate(d.actualdate), periodLabel, d.status, d.notes || '']);
             }
         });
         
-        this.downloadExcel(data, `Historial_Vacaciones_${new Date().toISOString().split('T')[0]}.xlsx`);
+        this.downloadExcel(data, `${filename}.xlsx`);
     },
 
     downloadExcel(dataArray, filename) {

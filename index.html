@@ -351,8 +351,21 @@
                         </div>
                         <div class="divider"></div>
                         <div class="config-section">
+                            <h3><i class="fas fa-file-export"></i> Reportería Individual</h3>
+                            <p>Descarga el historial detallado de un solo colaborador.</p>
+                            <div style="display: flex; gap: 10px; margin-top: 15px;">
+                                <select id="export-individual-select" class="input-field" style="max-width: 300px;">
+                                    <option value="">Selecciona Colaborador...</option>
+                                </select>
+                                <button class="btn btn-primary" id="btn-export-individual">
+                                    <i class="fas fa-file-excel"></i> Exportar Historial
+                                </button>
+                            </div>
+                        </div>
+                        <div class="divider"></div>
+                        <div class="config-section">
                             <div class="config-actions">
-                                <button class="btn btn-secondary btn-sm" id="btn-export-data"><i class="fas fa-download"></i> Exportar</button>
+                                <button class="btn btn-secondary btn-sm" id="btn-export-data" title="Exportar TODO el historial de la empresa"><i class="fas fa-download"></i> Exportar Todo</button>
                                 <button class="btn btn-danger-outline btn-sm admin-only" id="btn-reset-data"><i class="fas fa-trash-alt"></i> Limpiar Todo</button>
                             </div>
                         </div>
