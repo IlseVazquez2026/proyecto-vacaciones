@@ -110,7 +110,17 @@ body {
 .menu-divider {
     height: 1px;
     background-color: var(--border-color);
-    margin: 15px 0;
+    margin: 20px 0 10px 0;
+}
+
+.menu-label {
+    font-size: 0.65rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    color: var(--text-secondary);
+    letter-spacing: 1px;
+    padding: 10px 15px 5px 15px;
+    opacity: 0.6;
 }
 
 .sidebar-footer {
