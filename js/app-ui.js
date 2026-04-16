@@ -422,6 +422,31 @@ const UIManager = {
         modal.classList.add('active');
     },
 
+    async handleUserFormSubmit(e) {
+        e.preventDefault();
+        const btn = e.target.querySelector('button[type="submit"]');
+        const userData = {
+            id: document.getElementById('user-id').value || null,
+            name: document.getElementById('user-name').value,
+            username: document.getElementById('user-username').value,
+            password: document.getElementById('user-password').value,
+            role: document.getElementById('user-role').value
+        };
+
+        try {
+            btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Guardando...';
+            await StateManager.saveUser(userData);
+            this.showToast('Usuario guardado con éxito', 'success');
+            document.getElementById('user-modal').classList.remove('active');
+            Visualizer.renderUserManagement();
+        } catch (err) {
+            this.showToast('Error al guardar usuario: ' + err.message, 'error');
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = 'Guardar Acceso';
+        }
+    },
+
     async handleFormSubmit(e) {
         e.preventDefault();
         const btn = e.target.querySelector('button[type="submit"]');
