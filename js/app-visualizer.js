@@ -820,38 +820,81 @@ const Visualizer = {
         const body = document.getElementById('permissions-table-body');
         if (!body) return;
 
-        const permissions = StateManager.getPermissions().slice(0, 15); // Top 15 recents
+        if (!body) return;
+
+        const allPermissions = StateManager.getPermissions(); // Todos, no limitado a 15 para permitir agrupado completo
         body.innerHTML = '';
 
-        if (permissions.length === 0) {
+        if (allPermissions.length === 0) {
             body.innerHTML = '<tr><td colspan="5" style="text-align:center; padding:30px; opacity:0.6;">Sin permisos registrados.</td></tr>';
             return;
         }
 
-        permissions.forEach(p => {
-            const col = StateManager.getCollaboratorById(p.collaboratorid);
-            const tr = document.createElement('tr');
-            tr.innerHTML = `
-                <td>
-                    <div style="font-weight:600;">${col ? col.name : 'Desconocido'}</div>
-                    <div style="font-size:0.7rem; color:var(--text-secondary);">${p.notes || '-'}</div>
+        // Agrupar por mes
+        const groups = {};
+        allPermissions.forEach(p => {
+            const date = new Date(p.date + 'T12:00:00');
+            const key = `${date.getFullYear()}-${date.getMonth()}`;
+            if (!groups[key]) groups[key] = [];
+            groups[key].push(p);
+        });
+
+        const monthNames = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
+        
+        // Ordenar grupos por fecha descendente
+        const sortedKeys = Object.keys(groups).sort((a, b) => {
+            const [yA, mA] = a.split('-').map(Number);
+            const [yB, mB] = b.split('-').map(Number);
+            return (yB * 12 + mB) - (yA * 12 + mA);
+        });
+
+        sortedKeys.forEach(key => {
+            const [year, month] = key.split('-').map(Number);
+            const perms = groups[key];
+
+            // Renderizar encabezado de mes
+            const headerTr = document.createElement('tr');
+            headerTr.style.background = '#f9fafb';
+            headerTr.style.fontWeight = 'bold';
+            headerTr.innerHTML = `
+                <td colspan="4" style="color:var(--primary-color); padding: 12px 15px;">
+                    <i class="fas fa-calendar-day"></i> ${monthNames[month]} ${year}
                 </td>
-                <td>${UIManager.formatDate(p.date)}</td>
-                <td style="white-space:nowrap;">
-                    <span class="status-pill" style="background:#fff7ed; color:#c2410c; border:1px solid #ffedd5; white-space:nowrap; display:inline-block;">${p.start_time} - ${p.end_time}</span>
-                </td>
-                <td><strong>${p.total_hours}</strong></td>
-                <td>
-                    <button class="btn-icon edit" onclick="UIManager.handleEditPermission('${p.id}')">
-                        <i class="fas fa-edit"></i>
-                    </button>
-                    <button class="btn-icon delete" onclick="UIManager.handleDeletePermission('${p.id}')">
-                        <i class="fas fa-trash"></i>
+                <td style="text-align:right; padding-right:15px;">
+                    <button class="btn-icon delete admin-only" onclick="UIManager.handleDeleteMonthPermissions(${year}, ${month})" title="Borrar historial de este mes">
+                        <i class="fas fa-trash-alt"></i> Borrar Mes
                     </button>
                 </td>
             `;
-            body.appendChild(tr);
+            body.appendChild(headerTr);
+
+            // Renderizar filas del mes
+            perms.forEach(p => {
+                const col = StateManager.getCollaboratorById(p.collaboratorid);
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td style="padding-left: 25px;">
+                        <div style="font-weight:600;">${col ? col.name : 'Desconocido'}</div>
+                        <div style="font-size:0.7rem; color:var(--text-secondary);">${p.notes || '-'}</div>
+                    </td>
+                    <td>${UIManager.formatDate(p.date)}</td>
+                    <td style="white-space:nowrap;">
+                        <span class="status-pill" style="background:#fff7ed; color:#c2410c; border:1px solid #ffedd5; white-space:nowrap; display:inline-block;">${p.start_time} - ${p.end_time}</span>
+                    </td>
+                    <td><strong>${p.total_hours}</strong></td>
+                    <td>
+                        <button class="btn-icon edit" onclick="UIManager.handleEditPermission('${p.id}')" title="Editar">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        <button class="btn-icon delete" onclick="UIManager.handleDeletePermission('${p.id}')" title="Borrar">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </td>
+                `;
+                body.appendChild(tr);
+            });
         });
+    }
     }
 };
 

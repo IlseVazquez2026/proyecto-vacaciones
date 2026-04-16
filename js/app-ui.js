@@ -356,6 +356,21 @@ const UIManager = {
         Visualizer.renderPermissionMiniCalendar();
     },
 
+        Visualizer.renderPermissionsView();
+    },
+
+    async handleDeleteMonthPermissions(year, month) {
+        if (!AuthManager.checkPermission('admin')) return;
+        const months = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
+        const monthName = months[month];
+        
+        if (confirm(`¿ESTÁS SEGURO?\nEsta acción eliminará TODOS los registros de permisos de ${monthName} ${year}.\nEste proceso es irreversible.`)) {
+            await StateManager.deletePermissionsByMonth(year, month);
+            this.showToast(`Historial de ${monthName} eliminado`, 'success');
+            Visualizer.renderPermissionsView();
+        }
+    },
+
     async handleDeletePermission(id) {
         if (!AuthManager.checkPermission('admin')) return;
         if (confirm('¿Eliminar este registro de permiso?')) {

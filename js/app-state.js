@@ -359,6 +359,24 @@ const StateManager = {
         await this.init();
     },
 
+    async deletePermissionsByMonth(year, month) {
+        // month is 0-indexed (0=Enero, 11=Diciembre)
+        const targetPrefix = `${year}-${String(month + 1).padStart(2, '0')}`;
+        
+        try {
+            // Eliminar de Supabase (si existe tabla)
+            const { error } = await supabase.from('permissions').delete().like('date', `${targetPrefix}%`);
+            if (error) throw error;
+        } catch (err) {
+            console.warn("StateManager: Error o falta de tabla al borrar por mes en DB. Usando local.", err);
+            const current = JSON.parse(localStorage.getItem('vacaciones_permissions_backup') || '[]');
+            const filtered = current.filter(p => !p.date.startsWith(targetPrefix));
+            localStorage.setItem('vacaciones_permissions_backup', JSON.stringify(filtered));
+            this.data.permissions = filtered;
+        }
+        await this.init();
+    },
+
     // --- HOLIDAY METHODS (SCHEMA-SAFE) ---
     getHolidays() {
         // Leemos desde el almacenamiento local para evadir las reglas de la base de datos
