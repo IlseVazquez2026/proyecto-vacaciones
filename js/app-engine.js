@@ -225,16 +225,18 @@ const VacationManager = {
 
     // Obtener eventos para el calendario (Vista 1)
     getEventsForMonth(year, month) {
-        const startDate = new Date(year, month, 1);
-        const endDate = new Date(year, month + 1, 0);
+        const targetYear = Number(year);
+        const targetMonth = Number(month);
+        const prefix = `${targetYear}-${String(targetMonth + 1).padStart(2, '0')}`; // ej. "2026-04"
         
         const days = StateManager.data.vacationdays || [];
         const events = [];
 
         // 1. Agregar eventos normales de colaboradores
         days.forEach(d => {
-            const actualDate = new Date(d.actualdate + 'T12:00:00');
-            if (actualDate >= startDate && actualDate <= endDate) {
+            if (!d.actualdate) return;
+            const cleanDate = String(d.actualdate).trim();
+            if (cleanDate.startsWith(prefix)) {
                 if (d.status === 'cancelled') return;
 
                 const col = StateManager.getCollaboratorById(d.collaboratorid);
@@ -242,9 +244,9 @@ const VacationManager = {
                     dayId: d.id,
                     colId: d.collaboratorid,
                     colName: col ? col.name : 'Desconocido',
-                    date: d.actualdate,
+                    date: cleanDate,
                     status: d.status,
-                    isWeekend: !this.isBusinessDay(d.actualdate) // Esta función ahora saltará festivos porque está consultando a JSON
+                    isWeekend: !this.isBusinessDay(cleanDate)
                 });
             }
         });
@@ -252,13 +254,14 @@ const VacationManager = {
         // 2. Agregar los festivos globales desde el nuevo origen local JSON
         const holidays = StateManager.getHolidays();
         holidays.forEach(h => {
-            const actualDate = new Date(h.actualdate + 'T12:00:00');
-            if (actualDate >= startDate && actualDate <= endDate) {
+            if (!h.actualdate) return;
+            const cleanDate = String(h.actualdate).trim();
+            if (cleanDate.startsWith(prefix)) {
                 events.push({
                     dayId: h.id,
                     colId: 'SYS-CONFIG',
                     colName: h.notes || 'DÍA FESTIVO',
-                    date: h.actualdate,
+                    date: cleanDate,
                     status: 'holiday',
                     isWeekend: false
                 });
@@ -305,13 +308,14 @@ const VacationManager = {
     },
 
     getPermissionsForMonth(year, month) {
-        const startDate = new Date(year, month, 1);
-        const endDate = new Date(year, month + 1, 0);
+        const targetYear = Number(year);
+        const targetMonth = Number(month);
+        const prefix = `${targetYear}-${String(targetMonth + 1).padStart(2, '0')}`;
         
         const permissions = StateManager.getPermissions();
         return permissions.filter(p => {
-            const pDate = new Date(p.date + 'T12:00:00');
-            return pDate >= startDate && pDate <= endDate;
+            if (!p.date) return false;
+            return String(p.date).trim().startsWith(prefix);
         });
     }
 };

@@ -287,8 +287,11 @@ const Visualizer = {
         const container = document.getElementById('calendar-container');
         if (!container) return;
         
-        const firstDay = new Date(this.currentYear, this.currentMonth, 1).getDay();
-        const daysInMonth = new Date(this.currentYear, this.currentMonth + 1, 0).getDate();
+        const year = Number(this.currentYear);
+        const month = Number(this.currentMonth);
+        
+        const firstDay = new Date(year, month, 1).getDay();
+        const daysInMonth = new Date(year, month + 1, 0).getDate();
         
         let html = `
             <div class="calendar-grid">
@@ -301,8 +304,8 @@ const Visualizer = {
                 <div class="calendar-day-head">Sáb</div>
         `;
 
-        const events = VacationManager.getEventsForMonth(this.currentYear, this.currentMonth);
-        const pEvents = VacationManager.getPermissionsForMonth(this.currentYear, this.currentMonth);
+        const events = VacationManager.getEventsForMonth(year, month);
+        const pEvents = VacationManager.getPermissionsForMonth(year, month);
         
         const allCols = StateManager.getCollaborators('all').sort((a, b) => String(a.id).localeCompare(String(b.id)));
         const colColorMap = {};
@@ -315,8 +318,12 @@ const Visualizer = {
         }
 
         for (let day = 1; day <= daysInMonth; day++) {
-            const dateStr = `${this.currentYear}-${String(this.currentMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-            const dayEvents = events.filter(e => e.date === dateStr);
+            const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+            // Normalización para asegurar el match (eliminar espacios o formatos ISO largos)
+            const dayEvents = events.filter(e => {
+                const eDateStr = String(e.date).split('T')[0].trim();
+                return eDateStr === dateStr;
+            });
             
             const hasHoliday = dayEvents.some(e => e.status === 'holiday');
             const totalOnLeave = dayEvents.filter(e => e.status !== 'holiday').length;
@@ -356,6 +363,9 @@ const Visualizer = {
                                     hue = Math.abs(hash) % 360;
                                 }
                                 inlineStyle = `background-color: hsl(${hue}, 75%, 85%) !important; color: #1a1a1a !important; font-weight: 600 !important; border-left: 4px solid hsl(${hue}, 80%, 40%) !important; box-shadow: 1px 1px 2px rgba(0,0,0,0.1) !important;`;
+                            } else {
+                                // Fallback para días no laborables (fines de semana/festivos) con vacaciones
+                                inlineStyle = `background-color: #f3f4f6; color: #4b5563; border-left: 4px solid #9ca3af; font-style: italic;`;
                             }
                             return `
                             <div class="calendar-event ${cssClass}" style="${inlineStyle}" title="${e.colName}">
