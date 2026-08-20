@@ -32,6 +32,7 @@ const UIManager = {
             'nav-personnel': 'view-personnel',
             'nav-holidays': 'view-holidays',
             'nav-permissions': 'view-permissions',
+            'nav-compensatory-rests': 'view-compensatory-rests',
             'nav-config': 'view-config'
         };
 
@@ -105,9 +106,57 @@ const UIManager = {
             permissionForm.onsubmit = (e) => this.handlePermissionSubmit(e);
         }
 
+        const compRestForm = document.getElementById('comp-rest-form');
+        if (compRestForm) {
+            compRestForm.onsubmit = (e) => this.handleCompensatorySubmit(e);
+        }
+
+        const compRestType = document.getElementById('comp-rest-type');
+        if (compRestType) {
+            compRestType.onchange = () => {
+                if (typeof Visualizer !== 'undefined') Visualizer.renderCompensatoryHoursFields();
+            };
+        }
+
+        ['comp-start-time', 'comp-end-time'].forEach(id => {
+            const el = document.getElementById(id);
+            if (el) {
+                el.oninput = () => {
+                    if (typeof Visualizer !== 'undefined') Visualizer.updateCompensatoryHoursPreview();
+                };
+            }
+        });
+
+        ['comp-filter-person', 'comp-filter-date', 'comp-filter-status'].forEach(id => {
+            const el = document.getElementById(id);
+            if (el) {
+                el.onchange = () => {
+                    if (typeof Visualizer !== 'undefined') Visualizer.renderCompensatoryRestsTable();
+                };
+            }
+        });
+
+        const compFilterClear = document.getElementById('comp-filter-clear');
+        if (compFilterClear) {
+            compFilterClear.onclick = () => {
+                const person = document.getElementById('comp-filter-person');
+                const date = document.getElementById('comp-filter-date');
+                const status = document.getElementById('comp-filter-status');
+                if (person) person.value = '';
+                if (date) date.value = '';
+                if (status) status.value = 'all';
+                if (typeof Visualizer !== 'undefined') Visualizer.renderCompensatoryRestsTable();
+            };
+        }
+
         const btnPermCancel = document.getElementById('btn-perm-cancel');
         if (btnPermCancel) {
             btnPermCancel.onclick = () => this.handleCancelPermissionEdit();
+        }
+
+        const btnCompCancel = document.getElementById('btn-comp-cancel');
+        if (btnCompCancel) {
+            btnCompCancel.onclick = () => this.handleCancelCompensatoryEdit();
         }
 
         const btnUpload = document.getElementById('btn-trigger-upload');
@@ -206,6 +255,7 @@ const UIManager = {
             case 'personnel': Visualizer.renderPersonnelPanel(); break;
             case 'holidays': this.renderHolidaysTable(); break;
             case 'permissions': Visualizer.renderPermissionsView(); break;
+            case 'compensatory-rests': Visualizer.renderCompensatoryRestsView(); break;
             case 'config': Visualizer.renderUserManagement(); break;
         }
     },
@@ -385,6 +435,112 @@ const UIManager = {
             await StateManager.deletePermission(id);
             this.showToast('Permiso eliminado', 'success');
             Visualizer.renderPermissionsView();
+        }
+    },
+
+    async handleCompensatorySubmit(e) {
+        e.preventDefault();
+        const btn = e.target.querySelector('button[type="submit"]');
+        const originalText = btn.innerHTML;
+
+        const colId = document.getElementById('comp-col-select').value;
+        const eventDate = document.getElementById('comp-event-date').value;
+        const restDate = document.getElementById('comp-rest-date').value;
+        const reason = document.getElementById('comp-reason').value.trim();
+        const restType = document.getElementById('comp-rest-type').value;
+        const status = document.getElementById('comp-status').value || 'programmed';
+        const startTime = document.getElementById('comp-start-time').value;
+        const endTime = document.getElementById('comp-end-time').value;
+
+        if (!colId || !eventDate || !restDate || !reason) {
+            this.showToast('Completa colaborador, fechas y motivo', 'error');
+            return;
+        }
+
+        let totalHours = '';
+        if (restType === 'hours') {
+            if (!startTime || !endTime) {
+                this.showToast('Captura hora de inicio y fin', 'error');
+                return;
+            }
+            totalHours = VacationManager.calculateHours(startTime, endTime);
+            if (!totalHours || totalHours === 0) {
+                this.showToast('La hora fin debe ser mayor a la hora inicio', 'error');
+                return;
+            }
+        }
+
+        try {
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Guardando...';
+
+            await StateManager.saveCompensatoryRest({
+                id: Visualizer.editingCompensatoryId,
+                collaboratorid: colId,
+                event_date: eventDate,
+                reason,
+                rest_date: restDate,
+                rest_type: restType,
+                start_time: restType === 'hours' ? startTime : '',
+                end_time: restType === 'hours' ? endTime : '',
+                total_hours: restType === 'hours' ? totalHours : '',
+                status
+            });
+
+            this.showToast(Visualizer.editingCompensatoryId ? 'Descanso actualizado' : 'Descanso registrado', 'success');
+            this.handleCancelCompensatoryEdit();
+            Visualizer.renderCompensatoryRestsView();
+            Visualizer.renderCalendar();
+        } catch (err) {
+            this.showToast('Error: ' + err.message, 'error');
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = originalText;
+        }
+    },
+
+    handleEditCompensatory(id) {
+        const rest = StateManager.getCompensatoryRestById(id);
+        if (!rest) return;
+
+        Visualizer.editingCompensatoryId = id;
+        document.getElementById('comp-col-select').value = rest.collaboratorid;
+        document.getElementById('comp-event-date').value = rest.event_date || '';
+        document.getElementById('comp-rest-date').value = rest.rest_date || '';
+        document.getElementById('comp-reason').value = rest.reason || '';
+        document.getElementById('comp-rest-type').value = rest.rest_type || 'full_day';
+        document.getElementById('comp-status').value = rest.status || 'programmed';
+        document.getElementById('comp-start-time').value = rest.start_time || '';
+        document.getElementById('comp-end-time').value = rest.end_time || '';
+        document.getElementById('btn-comp-submit').innerHTML = '<i class="fas fa-save"></i> Guardar Cambios';
+        document.getElementById('btn-comp-cancel').style.display = 'block';
+
+        if (typeof Visualizer !== 'undefined') {
+            Visualizer.renderCompensatoryHoursFields();
+            Visualizer.updateCompensatoryHoursPreview();
+        }
+    },
+
+    handleCancelCompensatoryEdit() {
+        Visualizer.editingCompensatoryId = null;
+        const form = document.getElementById('comp-rest-form');
+        if (form) form.reset();
+        document.getElementById('btn-comp-submit').innerHTML = '<i class="fas fa-save"></i> Registrar Descanso';
+        document.getElementById('btn-comp-cancel').style.display = 'none';
+        if (typeof Visualizer !== 'undefined') {
+            Visualizer.renderCompensatoryHoursFields();
+            Visualizer.updateCompensatoryHoursPreview();
+        }
+    },
+
+    async handleDeleteCompensatory(id) {
+        if (!AuthManager.checkPermission('admin')) return;
+        if (confirm('¿Eliminar este descanso compensatorio?')) {
+            await StateManager.deleteCompensatoryRest(id);
+            this.showToast('Descanso compensatorio eliminado', 'success');
+            if (Visualizer.editingCompensatoryId === id) this.handleCancelCompensatoryEdit();
+            Visualizer.renderCompensatoryRestsView();
+            Visualizer.renderCalendar();
         }
     },
 

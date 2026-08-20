@@ -9,6 +9,7 @@ const StateManager = {
         vacationrequests: [],
         vacationdays: [],
         permissions: [],
+        compensatoryrests: [],
         vacationrules: {
             pre2023: [
                 { years: 1, days: 6 }, { years: 2, days: 8 }, { years: 3, days: 10 }, { years: 4, days: 12 }, { years: 5, days: 14 },
@@ -46,36 +47,36 @@ const StateManager = {
                 syncTable('users', 'users'),
                 syncTable('vacation_requests', 'vacationrequests'),
                 syncTable('vacation_days', 'vacationdays'),
-                syncTable('permissions', 'permissions')
+                syncTable('permissions', 'permissions'),
+                syncTable('compensatory_rest_days', 'compensatoryrests')
             ]);
 
-            // --- REFUERZO DE PERSISTENCIA Y MIGRACIÓN PARA PERMISOS ---
-            const localPerms = localStorage.getItem('vacaciones_permissions_backup');
-            if (localPerms) {
-                const parsedLocal = JSON.parse(localPerms);
-                // Si la nube está vacía pero tenemos datos locales, intentamos migrar (subir a la nube)
-                if (parsedLocal.length > 0 && (!this.data.permissions || this.data.permissions.length === 0)) {
-                    console.log(`StateManager: ⇅ Detectados ${parsedLocal.length} permisos locales. Iniciando migración a la nube...`);
+            const restoreLocalBackup = async (storageKey, propertyName, tableName) => {
+                const raw = localStorage.getItem(storageKey);
+                if (!raw) return;
+
+                const parsedLocal = JSON.parse(raw);
+                if (parsedLocal.length > 0 && (!this.data[propertyName] || this.data[propertyName].length === 0)) {
+                    console.log(`StateManager: ⇅ Detectados ${parsedLocal.length} registros locales en [${propertyName}]. Iniciando sincronización...`);
                     try {
-                        // Subida masiva (upsert)
-                        const { error } = await supabase.from('permissions').upsert(parsedLocal);
+                        const { error } = await supabase.from(tableName).upsert(parsedLocal);
                         if (!error) {
-                            console.log("StateManager: ✓ Migración de permisos completada con éxito.");
-                            // Volver a cargar para asegurar sincronía
-                            const { data } = await supabase.from('permissions').select('*');
-                            this.data.permissions = data || parsedLocal;
+                            const { data } = await supabase.from(tableName).select('*');
+                            this.data[propertyName] = data || parsedLocal;
                         } else {
                             throw error;
                         }
                     } catch (migrationError) {
-                        console.error("StateManager: ⚠ Error durante la migración de permisos:", migrationError);
-                        this.data.permissions = parsedLocal; // Fallback al local si falla la subida
+                        console.warn(`StateManager: ⚠ Fallback local para [${propertyName}]`, migrationError);
+                        this.data[propertyName] = parsedLocal;
                     }
-                } else if (!this.data.permissions || this.data.permissions.length === 0) {
-                    // Si no hay nada en la nube ni local que subir, pero hay un backup de "vanguardia" (por si acaso)
-                    this.data.permissions = parsedLocal;
+                } else if (!this.data[propertyName] || this.data[propertyName].length === 0) {
+                    this.data[propertyName] = parsedLocal;
                 }
-            }
+            };
+
+            await restoreLocalBackup('vacaciones_permissions_backup', 'permissions', 'permissions');
+            await restoreLocalBackup('vacaciones_compensatory_backup', 'compensatoryrests', 'compensatory_rest_days');
 
             // Restaurar sesión de usuario (si existe localmente)
             const savedUser = localStorage.getItem('vacaciones_user_session');
@@ -217,6 +218,15 @@ const StateManager = {
             // ELIMINACIÓN DEFINITIVA (HARD DELETE)
             await supabase.from('vacation_days').delete().eq('collaboratorid', id);
             await supabase.from('vacation_requests').delete().eq('collaboratorid', id);
+            await supabase.from('compensatory_rest_days').delete().eq('collaboratorid', id);
+
+            const compBackup = JSON.parse(localStorage.getItem('vacaciones_compensatory_backup') || '[]');
+            if (compBackup.length > 0) {
+                const filteredComp = compBackup.filter(r => r.collaboratorid !== id);
+                localStorage.setItem('vacaciones_compensatory_backup', JSON.stringify(filteredComp));
+                this.data.compensatoryrests = filteredComp;
+            }
+
             const { error } = await supabase.from('collaborators').delete().eq('id', id);
             if (error) throw error;
             await this.init();
@@ -392,6 +402,76 @@ const StateManager = {
         localStorage.setItem('vacaciones_permissions_backup', JSON.stringify(filtered));
         this.data.permissions = filtered;
         
+        await this.init();
+    },
+
+    getCompensatoryRests(collaboratorId = null) {
+        let list = this.data.compensatoryrests || [];
+        if (collaboratorId) list = list.filter(r => r.collaboratorid === collaboratorId);
+
+        return [...list].sort((a, b) => {
+            const dateA = new Date(`${a.rest_date || a.date || '1970-01-01'}T12:00:00`);
+            const dateB = new Date(`${b.rest_date || b.date || '1970-01-01'}T12:00:00`);
+            return dateB - dateA;
+        });
+    },
+
+    getCompensatoryRestById(id) {
+        return (this.data.compensatoryrests || []).find(r => r.id === id);
+    },
+
+    async saveCompensatoryRest(rest) {
+        const payload = {
+            ...rest,
+            id: rest.id || `comp-${Date.now()}`,
+            lastupdate: new Date().toISOString()
+        };
+
+        const sanitizedPayload = {
+            id: payload.id,
+            collaboratorid: payload.collaboratorid,
+            event_date: payload.event_date,
+            reason: payload.reason,
+            rest_date: payload.rest_date,
+            rest_type: payload.rest_type,
+            start_time: payload.start_time,
+            end_time: payload.end_time,
+            total_hours: payload.total_hours,
+            status: payload.status,
+            notes: payload.notes,
+            lastupdate: payload.lastupdate
+        };
+
+        try {
+            const { error } = await supabase.from('compensatory_rest_days').upsert(sanitizedPayload);
+            if (error) throw error;
+        } catch (err) {
+            console.warn("StateManager: Guardando descanso compensatorio localmente debido a falta de tabla 'compensatory_rest_days' en DB.", err);
+            const current = JSON.parse(localStorage.getItem('vacaciones_compensatory_backup') || '[]');
+            const index = current.findIndex(r => r.id === payload.id);
+            if (index > -1) current[index] = payload; else current.push(payload);
+            localStorage.setItem('vacaciones_compensatory_backup', JSON.stringify(current));
+            this.data.compensatoryrests = current;
+            return payload;
+        }
+
+        await this.init();
+        return payload;
+    },
+
+    async deleteCompensatoryRest(id) {
+        try {
+            const { error } = await supabase.from('compensatory_rest_days').delete().eq('id', id);
+            if (error) throw error;
+        } catch (err) {
+            console.warn("StateManager: Error en nube, procediendo con borrado local de descanso compensatorio.", err);
+        }
+
+        const current = JSON.parse(localStorage.getItem('vacaciones_compensatory_backup') || '[]');
+        const filtered = current.filter(r => r.id !== id);
+        localStorage.setItem('vacaciones_compensatory_backup', JSON.stringify(filtered));
+        this.data.compensatoryrests = filtered;
+
         await this.init();
     },
 

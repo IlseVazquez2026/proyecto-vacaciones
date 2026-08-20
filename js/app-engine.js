@@ -241,12 +241,14 @@ const VacationManager = {
 
                 const col = StateManager.getCollaboratorById(d.collaboratorid);
                 events.push({
+                    eventType: 'vacation',
                     dayId: d.id,
                     colId: d.collaboratorid,
                     colName: col ? col.name : 'Desconocido',
                     date: cleanDate,
                     status: d.status,
-                    isWeekend: !this.isBusinessDay(cleanDate)
+                    isWeekend: !this.isBusinessDay(cleanDate),
+                    tooltip: `${col ? col.name : 'Desconocido'} - ${cleanDate}`
                 });
             }
         });
@@ -258,12 +260,46 @@ const VacationManager = {
             const cleanDate = String(h.actualdate).trim();
             if (cleanDate.startsWith(prefix)) {
                 events.push({
+                    eventType: 'holiday',
                     dayId: h.id,
                     colId: 'SYS-CONFIG',
                     colName: h.notes || 'DÍA FESTIVO',
                     date: cleanDate,
                     status: 'holiday',
-                    isWeekend: false
+                    isWeekend: false,
+                    tooltip: h.notes || 'Día festivo'
+                });
+            }
+        });
+
+        // 3. Agregar descansos compensatorios
+        const compRests = StateManager.getCompensatoryRests();
+        compRests.forEach(r => {
+            if (!r.rest_date) return;
+            const cleanDate = String(r.rest_date).trim();
+            if (cleanDate.startsWith(prefix)) {
+                if (r.status === 'cancelled') return;
+
+                const col = StateManager.getCollaboratorById(r.collaboratorid);
+                const isHours = r.rest_type === 'hours';
+                const schedule = isHours && r.start_time && r.end_time ? `${r.start_time} - ${r.end_time}` : 'Día completo';
+                const totalHours = isHours && r.total_hours ? ` (${r.total_hours})` : '';
+                events.push({
+                    eventType: 'compensatory',
+                    restType: r.rest_type || 'full_day',
+                    dayId: r.id,
+                    colId: r.collaboratorid,
+                    colName: col ? col.name : 'Desconocido',
+                    date: cleanDate,
+                    status: r.status || 'programmed',
+                    eventDate: r.event_date || '',
+                    reason: r.reason || '',
+                    startTime: r.start_time || '',
+                    endTime: r.end_time || '',
+                    totalHours: r.total_hours || '',
+                    schedule,
+                    isWeekend: !this.isBusinessDay(cleanDate),
+                    tooltip: `${col ? col.name : 'Desconocido'} | Descanso compensatorio | Evento: ${r.event_date || 'N/D'} | ${r.reason || 'Sin motivo'} | ${schedule}${totalHours}`
                 });
             }
         });
@@ -316,6 +352,18 @@ const VacationManager = {
         return permissions.filter(p => {
             if (!p.date) return false;
             return String(p.date).trim().startsWith(prefix);
+        });
+    },
+
+    getCompensatoryRestsForMonth(year, month) {
+        const targetYear = Number(year);
+        const targetMonth = Number(month);
+        const prefix = `${targetYear}-${String(targetMonth + 1).padStart(2, '0')}`;
+
+        const rests = StateManager.getCompensatoryRests();
+        return rests.filter(r => {
+            if (!r.rest_date) return false;
+            return String(r.rest_date).trim().startsWith(prefix) && r.status !== 'cancelled';
         });
     }
 };

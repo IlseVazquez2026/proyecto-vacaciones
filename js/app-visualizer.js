@@ -8,6 +8,7 @@ const Visualizer = {
     selectedDates: [], 
     permissionSelectedDate: null,
     editingPermissionId: null,
+    editingCompensatoryId: null,
     selectedColId: null,
 
     init() {
@@ -165,6 +166,30 @@ const Visualizer = {
     updatePermDateSelectors() {
         if (document.getElementById('perm-month-select')) document.getElementById('perm-month-select').value = this.permMonth;
         if (document.getElementById('perm-year-select')) document.getElementById('perm-year-select').value = this.permYear;
+    },
+
+    renderCompensatoryHoursFields() {
+        const typeSelect = document.getElementById('comp-rest-type');
+        const hoursFields = document.getElementById('comp-hours-fields');
+        if (!typeSelect || !hoursFields) return;
+
+        const showHours = typeSelect.value === 'hours';
+        hoursFields.style.display = showHours ? 'block' : 'none';
+
+        const totalField = document.getElementById('comp-total-hours');
+        if (!showHours && totalField) totalField.value = '';
+        if (showHours) this.updateCompensatoryHoursPreview();
+    },
+
+    updateCompensatoryHoursPreview() {
+        const typeSelect = document.getElementById('comp-rest-type');
+        const totalField = document.getElementById('comp-total-hours');
+        const start = document.getElementById('comp-start-time');
+        const end = document.getElementById('comp-end-time');
+        if (!typeSelect || !totalField || typeSelect.value !== 'hours') return;
+
+        const total = VacationManager.calculateHours(start ? start.value : '', end ? end.value : '');
+        totalField.value = total && total !== 0 ? total : '';
     },
 
     // --- VISTA 0: DASHBOARD ---
@@ -325,8 +350,9 @@ const Visualizer = {
                 return eDateStr === dateStr;
             });
             
-            const hasHoliday = dayEvents.some(e => e.status === 'holiday');
-            const totalOnLeave = dayEvents.filter(e => e.status !== 'holiday').length;
+            const hasHoliday = dayEvents.some(e => e.eventType === 'holiday');
+            const totalOnLeave = dayEvents.filter(e => e.eventType === 'vacation' && e.status !== 'holiday').length;
+            const totalComp = dayEvents.filter(e => e.eventType === 'compensatory').length;
             
             const dayPermissions = pEvents.filter(p => p.date === dateStr);
 
@@ -338,12 +364,17 @@ const Visualizer = {
                 ? `<span style="background:#f59e0b; color:white; border-radius:10px; padding:2px 6px; font-size:0.65rem; font-weight:bold; margin-left:2px;" title="${dayPermissions.length} permisos registrados">${dayPermissions.length} <i class="fas fa-clock" style="font-size:0.5rem;"></i></span>`
                 : '';
 
+            const compBadge = (totalComp > 0)
+                ? `<span style="background:#0f766e; color:white; border-radius:10px; padding:2px 6px; font-size:0.65rem; font-weight:bold; margin-left:2px;" title="${totalComp} descansos compensatorios">${totalComp} <i class="fas fa-calendar-check" style="font-size:0.5rem;"></i></span>`
+                : '';
+
             html += `
                 <div class="calendar-day">
                     <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 4px;">
                         <div class="calendar-day-num" style="margin-bottom:0;">${day}</div>
                         <div style="display:flex;">
                             ${permBadge}
+                            ${compBadge}
                             ${countBadge}
                         </div>
                     </div>
@@ -351,9 +382,19 @@ const Visualizer = {
                         ${dayEvents.map(e => {
                             let inlineStyle = '';
                             let cssClass = `status-${e.isWeekend ? 'weekend' : 'dynamic'}`;
+                            let displayText = e.colName;
 
-                            if (e.status === 'holiday') {
+                            if (e.eventType === 'holiday') {
                                 cssClass = 'status-holiday';
+                                displayText = e.colName;
+                            } else if (e.eventType === 'compensatory') {
+                                const isHours = e.restType === 'hours';
+                                cssClass = isHours ? 'status-compensatory-hours' : 'status-compensatory-day';
+                                const schedule = isHours && e.startTime && e.endTime ? `${e.startTime} - ${e.endTime}` : 'Día completo';
+                                displayText = isHours ? `${e.colName} · ${schedule}` : `${e.colName} · Día completo`;
+                                inlineStyle = isHours
+                                    ? `background-color: #ecfeff !important; color: #0f766e !important; font-weight: 600 !important; border-left: 4px solid #14b8a6 !important; border-style: dashed !important; white-space: normal !important; line-height: 1.1 !important;`
+                                    : `background-color: #ccfbf1 !important; color: #0f766e !important; font-weight: 600 !important; border-left: 4px solid #0f766e !important; white-space: normal !important; line-height: 1.1 !important;`;
                             } else if (!e.isWeekend) {
                                 let hue = colColorMap[e.colId];
                                 if (hue === undefined) {
@@ -368,8 +409,8 @@ const Visualizer = {
                                 inlineStyle = `background-color: #f3f4f6; color: #4b5563; border-left: 4px solid #9ca3af; font-style: italic;`;
                             }
                             return `
-                            <div class="calendar-event ${cssClass}" style="${inlineStyle}" title="${e.colName}">
-                                ${e.colName}
+                            <div class="calendar-event ${cssClass}" style="${inlineStyle}" title="${e.tooltip || e.colName}">
+                                ${displayText}
                             </div>
                             `;
                         }).join('')}
@@ -798,6 +839,107 @@ const Visualizer = {
 
         this.renderPermissionMiniCalendar();
         this.renderPermissionsTable();
+    },
+
+    renderCompensatoryRestsView() {
+        const allColabs = StateManager.getCollaborators('all');
+        const select = document.getElementById('comp-col-select');
+        const filterPerson = document.getElementById('comp-filter-person');
+        const currentPersonFilter = filterPerson ? filterPerson.value : '';
+        const currentDateFilter = document.getElementById('comp-filter-date') ? document.getElementById('comp-filter-date').value : '';
+        const currentStatusFilter = document.getElementById('comp-filter-status') ? document.getElementById('comp-filter-status').value : 'all';
+
+        const options = '<option value="">Selecciona Colaborador...</option>' + 
+            allColabs.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
+        if (select) {
+            select.innerHTML = options;
+        }
+
+        if (filterPerson) {
+            filterPerson.innerHTML = '<option value="">Todas las personas</option>' + 
+                allColabs.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
+            filterPerson.value = currentPersonFilter;
+        }
+
+        const dateFilter = document.getElementById('comp-filter-date');
+        if (dateFilter) {
+            dateFilter.value = currentDateFilter;
+        }
+
+        const statusFilter = document.getElementById('comp-filter-status');
+        if (statusFilter) {
+            statusFilter.value = currentStatusFilter;
+        }
+
+        this.renderCompensatoryHoursFields();
+        this.updateCompensatoryHoursPreview();
+        this.renderCompensatoryRestsTable();
+    },
+
+    renderCompensatoryRestsTable() {
+        const body = document.getElementById('comp-rests-table-body');
+        if (!body) return;
+
+        const personFilter = document.getElementById('comp-filter-person') ? document.getElementById('comp-filter-person').value : '';
+        const dateFilter = document.getElementById('comp-filter-date') ? document.getElementById('comp-filter-date').value : '';
+        const statusFilter = document.getElementById('comp-filter-status') ? document.getElementById('comp-filter-status').value : 'all';
+
+        const rests = StateManager.getCompensatoryRests()
+            .filter(r => !personFilter || r.collaboratorid === personFilter)
+            .filter(r => !dateFilter || r.rest_date === dateFilter)
+            .filter(r => statusFilter === 'all' || r.status === statusFilter);
+
+        body.innerHTML = '';
+
+        if (rests.length === 0) {
+            body.innerHTML = '<tr><td colspan="8" style="text-align:center; padding:30px; opacity:0.6;">Sin descansos compensatorios registrados.</td></tr>';
+            return;
+        }
+
+        rests.forEach(r => {
+            const col = StateManager.getCollaboratorById(r.collaboratorid);
+            const isHours = r.rest_type === 'hours';
+            const normalizedStatus = r.status === 'taken' ? 'taken' : (r.status === 'cancelled' ? 'cancelled' : 'programmed');
+            const schedule = isHours
+                ? `${r.start_time || '--:--'} - ${r.end_time || '--:--'}${r.total_hours ? ` (${r.total_hours})` : ''}`
+                : 'Día completo';
+
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td>
+                    <div style="font-weight:600;">${col ? col.name : 'Desconocido'}</div>
+                    <div style="font-size:0.72rem; color:var(--text-secondary);">${col ? col.id : ''}</div>
+                </td>
+                <td>
+                    <div style="font-weight:600;">${r.reason || 'Sin motivo'}</div>
+                </td>
+                <td>${this.formatDate(r.event_date)}</td>
+                <td>${this.formatDate(r.rest_date)}</td>
+                <td>
+                    <span class="status-pill ${isHours ? 'pill-hours' : 'pill-full-day'}">${isHours ? 'Por horas' : 'Día completo'}</span>
+                </td>
+                <td><span class="status-pill" style="background:#ecfeff; color:#0f766e; border:1px solid #99f6e4;">${schedule}</span></td>
+                <td><span class="status-pill pill-${normalizedStatus}">${this.getCompensatoryStatusLabel(r.status)}</span></td>
+                <td>
+                    <div style="display:flex; gap:4px; align-items:center;">
+                        <button class="btn-icon edit admin-only" onclick="UIManager.handleEditCompensatory('${r.id}')" title="Editar" style="padding: 4px; font-size: 0.8rem;">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        <button class="btn-icon delete admin-only" onclick="UIManager.handleDeleteCompensatory('${r.id}')" title="Borrar" style="padding: 4px; font-size: 0.8rem;">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                </td>
+            `;
+            body.appendChild(tr);
+        });
+    },
+
+    getCompensatoryStatusLabel(status) {
+        if (status === 'taken') return 'Tomado';
+        if (status === 'cancelled') return 'Cancelado';
+        if (status === 'approved') return 'Programado';
+        return 'Programado';
     },
 
     renderPermissionMiniCalendar() {

@@ -242,6 +242,8 @@ body {
 .calendar-event.status-taken { background-color: #00B894; color: white; }
 .calendar-event.status-rescheduled { background-color: #6C5CE7; color: white; }
 .calendar-event.status-holiday { background-color: #FCE4EC; color: #C2185B !important; font-weight: bold; border: 1px solid #F48FB1; border-left: 4px solid #C2185B !important; }
+.calendar-event.status-compensatory-day { background-color: #ccfbf1; color: #0f766e !important; border-left: 4px solid #0f766e !important; }
+.calendar-event.status-compensatory-hours { background-color: #ecfeff; color: #0f766e !important; border-left: 4px dashed #14b8a6 !important; }
 
 /* History View */
 .history-col-header {
@@ -517,6 +519,41 @@ body {
 
 .pill-active { background-color: rgba(0, 184, 148, 0.1); color: var(--success-color); }
 .pill-inactive { background-color: rgba(214, 48, 49, 0.1); color: var(--danger-color); }
+.pill-taken { background-color: rgba(0, 184, 148, 0.1); color: #00B894; }
+.pill-full-day { background-color: rgba(15, 118, 110, 0.1); color: #0f766e; }
+.pill-hours { background-color: rgba(20, 184, 166, 0.1); color: #0f766e; }
+
+.comp-rest-legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    align-items: center;
+}
+
+.legend-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    border-radius: 999px;
+    font-size: 0.78rem;
+    font-weight: 600;
+    border: 1px solid var(--border-color);
+    background: #fff;
+    color: var(--text-secondary);
+}
+
+.legend-comp-day {
+    background: #ecfdf5;
+    color: #065f46;
+    border-color: #a7f3d0;
+}
+
+.legend-comp-hours {
+    background: #ecfeff;
+    color: #155e75;
+    border-color: #a5f3fc;
+}
 
 /* Buttons */
 .btn {

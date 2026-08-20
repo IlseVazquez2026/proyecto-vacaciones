@@ -53,6 +53,10 @@
                     <i class="fas fa-clock"></i>
                     <span>Permisos</span>
                 </a>
+                <a href="#" class="menu-item" id="nav-compensatory-rests">
+                    <i class="fas fa-calendar-check"></i>
+                    <span>Descansos compensatorios</span>
+                </a>
 
                 <div class="menu-divider admin-only"></div>
                 <div class="menu-label admin-only">Sistema</div>
@@ -480,6 +484,138 @@
                                         </thead>
                                         <tbody id="permissions-table-body">
                                             <!-- Permissions Rendered Here -->
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- 7. DESCANSOS COMPENSATORIOS -->
+                <section id="view-compensatory-rests" class="app-view" style="display: none;">
+                    <div class="view-header">
+                        <div style="display: flex; justify-content: space-between; align-items: center; width: 100%; gap: 20px; flex-wrap: wrap;">
+                            <div>
+                                <h1>Descansos compensatorios</h1>
+                                <p>Registra descansos otorgados por eventos o jornadas especiales sin afectar el saldo de vacaciones.</p>
+                            </div>
+                            <div class="comp-rest-legend">
+                                <span class="legend-chip legend-comp-day"><i class="fas fa-calendar-check"></i> Día completo</span>
+                                <span class="legend-chip legend-comp-hours"><i class="fas fa-clock"></i> Por horas</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="dashboard-grid perm-grid" style="display: grid; grid-template-columns: 360px 1fr; gap: 30px; margin-top: 30px;">
+                        <div class="card" style="padding: 25px;">
+                            <h3 style="margin-top: 0; margin-bottom: 20px;"><i class="fas fa-calendar-check" style="color:var(--primary-color);"></i> Nuevo Descanso</h3>
+                            <form id="comp-rest-form">
+                                <div class="form-group" style="margin-bottom: 20px;">
+                                    <label>Colaborador</label>
+                                    <select id="comp-col-select" class="input-field" required>
+                                        <option value="">Selecciona...</option>
+                                    </select>
+                                </div>
+
+                                <div class="form-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                                    <div class="form-group">
+                                        <label>Fecha del evento</label>
+                                        <input type="date" id="comp-event-date" class="input-field" required>
+                                    </div>
+                                    <div class="form-group">
+                                        <label>Fecha del descanso</label>
+                                        <input type="date" id="comp-rest-date" class="input-field" required>
+                                    </div>
+                                </div>
+
+                                <div class="form-group" style="margin-top: 16px;">
+                                    <label>Motivo / Evento</label>
+                                    <textarea id="comp-reason" class="input-field" placeholder="Ej: Evento en fin de semana, apoyo extraordinario..." style="height: 70px;" required></textarea>
+                                </div>
+
+                                <div class="form-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 16px;">
+                                    <div class="form-group">
+                                        <label>Tipo</label>
+                                        <select id="comp-rest-type" class="input-field" required>
+                                            <option value="full_day">Día completo</option>
+                                            <option value="hours">Por horas</option>
+                                        </select>
+                                    </div>
+                                    <div class="form-group">
+                                        <label>Estatus</label>
+                                        <select id="comp-status" class="input-field">
+                                            <option value="programmed">Programado</option>
+                                            <option value="taken">Tomado</option>
+                                            <option value="cancelled">Cancelado</option>
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <div id="comp-hours-fields" style="display: none; margin-top: 16px;">
+                                    <div class="form-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                                        <div class="form-group">
+                                            <label>Hora inicio</label>
+                                            <input type="time" id="comp-start-time" class="input-field">
+                                        </div>
+                                        <div class="form-group">
+                                            <label>Hora fin</label>
+                                            <input type="time" id="comp-end-time" class="input-field">
+                                        </div>
+                                    </div>
+                                    <div class="form-group" style="margin-top: 12px;">
+                                        <label>Total de horas</label>
+                                        <input type="text" id="comp-total-hours" class="input-field" readonly placeholder="Se calcula automáticamente">
+                                    </div>
+                                </div>
+
+                                <div style="display: flex; gap: 10px; margin-top: 20px;">
+                                    <button type="submit" id="btn-comp-submit" class="btn btn-primary admin-only" style="flex: 2;">
+                                        <i class="fas fa-save"></i> Registrar Descanso
+                                    </button>
+                                    <button type="button" id="btn-comp-cancel" class="btn btn-secondary admin-only" style="display: none; flex: 1;">
+                                        Cancelar
+                                    </button>
+                                </div>
+                                <p class="guest-msg" style="display:none; color:var(--error-color); font-size: 0.8rem; margin-top:10px; text-align:center;">Solo administradores pueden registrar descansos compensatorios.</p>
+                            </form>
+                        </div>
+
+                        <div class="card">
+                            <div class="card-header" style="padding: 20px 25px; border-bottom: 1px solid var(--border-color);">
+                                <div style="display:flex; justify-content:space-between; align-items:center; gap: 15px; flex-wrap: wrap;">
+                                    <h3 style="margin:0;"><i class="fas fa-list"></i> Registros de Descanso</h3>
+                                    <div class="comp-filter-grid" style="display:flex; gap:10px; flex-wrap: wrap;">
+                                        <select id="comp-filter-person" class="form-control-sm"></select>
+                                        <input type="date" id="comp-filter-date" class="form-control-sm">
+                                        <select id="comp-filter-status" class="form-control-sm">
+                                            <option value="all">Todos los estatus</option>
+                                            <option value="programmed">Programado</option>
+                                            <option value="taken">Tomado</option>
+                                            <option value="cancelled">Cancelado</option>
+                                        </select>
+                                        <button type="button" id="comp-filter-clear" class="btn btn-secondary btn-sm" style="min-width:auto;">
+                                            Limpiar
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="card-body" style="padding: 0;">
+                                <div class="table-responsive">
+                                    <table class="data-table" style="font-size: 0.85rem;">
+                                        <thead>
+                                            <tr>
+                                                <th>Colaborador</th>
+                                                <th>Evento</th>
+                                                <th>Fecha evento</th>
+                                                <th>Descanso</th>
+                                                <th>Tipo</th>
+                                                <th>Horario / Total</th>
+                                                <th>Estatus</th>
+                                                <th>Acción</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="comp-rests-table-body">
                                         </tbody>
                                     </table>
                                 </div>
