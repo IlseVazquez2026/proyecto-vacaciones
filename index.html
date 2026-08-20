@@ -542,14 +542,6 @@
                                             <option value="hours">Por horas</option>
                                         </select>
                                     </div>
-                                    <div class="form-group">
-                                        <label>Estatus</label>
-                                        <select id="comp-status" class="input-field">
-                                            <option value="programmed">Programado</option>
-                                            <option value="taken">Tomado</option>
-                                            <option value="cancelled">Cancelado</option>
-                                        </select>
-                                    </div>
                                 </div>
 
                                 <div id="comp-hours-fields" style="display: none; margin-top: 16px;">
@@ -583,22 +575,7 @@
 
                         <div class="card">
                             <div class="card-header" style="padding: 20px 25px; border-bottom: 1px solid var(--border-color);">
-                                <div style="display:flex; justify-content:space-between; align-items:center; gap: 15px; flex-wrap: wrap;">
-                                    <h3 style="margin:0;"><i class="fas fa-list"></i> Registros de Descanso</h3>
-                                    <div class="comp-filter-grid" style="display:flex; gap:10px; flex-wrap: wrap;">
-                                        <select id="comp-filter-person" class="form-control-sm"></select>
-                                        <input type="date" id="comp-filter-date" class="form-control-sm">
-                                        <select id="comp-filter-status" class="form-control-sm">
-                                            <option value="all">Todos los estatus</option>
-                                            <option value="programmed">Programado</option>
-                                            <option value="taken">Tomado</option>
-                                            <option value="cancelled">Cancelado</option>
-                                        </select>
-                                        <button type="button" id="comp-filter-clear" class="btn btn-secondary btn-sm" style="min-width:auto;">
-                                            Limpiar
-                                        </button>
-                                    </div>
-                                </div>
+                                <h3 style="margin:0;"><i class="fas fa-list"></i> Registros de Descanso</h3>
                             </div>
                             <div class="card-body" style="padding: 0;">
                                 <div class="table-responsive">
@@ -611,7 +588,6 @@
                                                 <th>Descanso</th>
                                                 <th>Tipo</th>
                                                 <th>Horario / Total</th>
-                                                <th>Estatus</th>
                                                 <th>Acción</th>
                                             </tr>
                                         </thead>

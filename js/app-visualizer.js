@@ -844,31 +844,11 @@ const Visualizer = {
     renderCompensatoryRestsView() {
         const allColabs = StateManager.getCollaborators('all');
         const select = document.getElementById('comp-col-select');
-        const filterPerson = document.getElementById('comp-filter-person');
-        const currentPersonFilter = filterPerson ? filterPerson.value : '';
-        const currentDateFilter = document.getElementById('comp-filter-date') ? document.getElementById('comp-filter-date').value : '';
-        const currentStatusFilter = document.getElementById('comp-filter-status') ? document.getElementById('comp-filter-status').value : 'all';
 
         const options = '<option value="">Selecciona Colaborador...</option>' + 
             allColabs.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
         if (select) {
             select.innerHTML = options;
-        }
-
-        if (filterPerson) {
-            filterPerson.innerHTML = '<option value="">Todas las personas</option>' + 
-                allColabs.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
-            filterPerson.value = currentPersonFilter;
-        }
-
-        const dateFilter = document.getElementById('comp-filter-date');
-        if (dateFilter) {
-            dateFilter.value = currentDateFilter;
-        }
-
-        const statusFilter = document.getElementById('comp-filter-status');
-        if (statusFilter) {
-            statusFilter.value = currentStatusFilter;
         }
 
         this.renderCompensatoryHoursFields();
@@ -880,58 +860,76 @@ const Visualizer = {
         const body = document.getElementById('comp-rests-table-body');
         if (!body) return;
 
-        const personFilter = document.getElementById('comp-filter-person') ? document.getElementById('comp-filter-person').value : '';
-        const dateFilter = document.getElementById('comp-filter-date') ? document.getElementById('comp-filter-date').value : '';
-        const statusFilter = document.getElementById('comp-filter-status') ? document.getElementById('comp-filter-status').value : 'all';
-
-        const rests = StateManager.getCompensatoryRests()
-            .filter(r => !personFilter || r.collaboratorid === personFilter)
-            .filter(r => !dateFilter || r.rest_date === dateFilter)
-            .filter(r => statusFilter === 'all' || r.status === statusFilter);
-
         body.innerHTML = '';
 
+        const rests = StateManager.getCompensatoryRests();
         if (rests.length === 0) {
-            body.innerHTML = '<tr><td colspan="8" style="text-align:center; padding:30px; opacity:0.6;">Sin descansos compensatorios registrados.</td></tr>';
+            body.innerHTML = '<tr><td colspan="7" style="text-align:center; padding:30px; opacity:0.6;">Sin descansos compensatorios registrados.</td></tr>';
             return;
         }
 
+        const groups = {};
         rests.forEach(r => {
-            const col = StateManager.getCollaboratorById(r.collaboratorid);
-            const isHours = r.rest_type === 'hours';
-            const normalizedStatus = r.status === 'taken' ? 'taken' : (r.status === 'cancelled' ? 'cancelled' : 'programmed');
-            const schedule = isHours
-                ? `${r.start_time || '--:--'} - ${r.end_time || '--:--'}${r.total_hours ? ` (${r.total_hours})` : ''}`
-                : 'Día completo';
+            const date = new Date(`${r.rest_date || r.event_date || '1970-01-01'}T12:00:00`);
+            const key = `${date.getFullYear()}-${date.getMonth()}`;
+            if (!groups[key]) groups[key] = [];
+            groups[key].push(r);
+        });
 
-            const tr = document.createElement('tr');
-            tr.innerHTML = `
-                <td>
-                    <div style="font-weight:600;">${col ? col.name : 'Desconocido'}</div>
-                    <div style="font-size:0.72rem; color:var(--text-secondary);">${col ? col.id : ''}</div>
-                </td>
-                <td>
-                    <div style="font-weight:600;">${r.reason || 'Sin motivo'}</div>
-                </td>
-                <td>${this.formatDate(r.event_date)}</td>
-                <td>${this.formatDate(r.rest_date)}</td>
-                <td>
-                    <span class="status-pill ${isHours ? 'pill-hours' : 'pill-full-day'}">${isHours ? 'Por horas' : 'Día completo'}</span>
-                </td>
-                <td><span class="status-pill" style="background:#ecfeff; color:#0f766e; border:1px solid #99f6e4;">${schedule}</span></td>
-                <td><span class="status-pill pill-${normalizedStatus}">${this.getCompensatoryStatusLabel(r.status)}</span></td>
-                <td>
-                    <div style="display:flex; gap:4px; align-items:center;">
-                        <button class="btn-icon edit admin-only" onclick="UIManager.handleEditCompensatory('${r.id}')" title="Editar" style="padding: 4px; font-size: 0.8rem;">
-                            <i class="fas fa-edit"></i>
-                        </button>
-                        <button class="btn-icon delete admin-only" onclick="UIManager.handleDeleteCompensatory('${r.id}')" title="Borrar" style="padding: 4px; font-size: 0.8rem;">
-                            <i class="fas fa-trash"></i>
-                        </button>
-                    </div>
+        const monthNames = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
+        const sortedKeys = Object.keys(groups).sort((a, b) => {
+            const [yA, mA] = a.split('-').map(Number);
+            const [yB, mB] = b.split('-').map(Number);
+            return (yB * 12 + mB) - (yA * 12 + mA);
+        });
+
+        sortedKeys.forEach(key => {
+            const [year, month] = key.split('-').map(Number);
+            const monthHeader = document.createElement('tr');
+            monthHeader.style.background = '#f9fafb';
+            monthHeader.style.fontWeight = 'bold';
+            monthHeader.innerHTML = `
+                <td colspan="7" style="color:var(--primary-color); padding: 12px 15px;">
+                    <i class="fas fa-calendar-day"></i> ${monthNames[month]} ${year}
                 </td>
             `;
-            body.appendChild(tr);
+            body.appendChild(monthHeader);
+
+            groups[key].forEach(r => {
+                const col = StateManager.getCollaboratorById(r.collaboratorid);
+                const isHours = r.rest_type === 'hours';
+                const schedule = isHours
+                    ? `${r.start_time || '--:--'} - ${r.end_time || '--:--'}${r.total_hours ? ` (${r.total_hours})` : ''}`
+                    : 'Día completo';
+
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>
+                        <div style="font-weight:600;">${col ? col.name : 'Desconocido'}</div>
+                        <div style="font-size:0.72rem; color:var(--text-secondary);">${col ? col.id : ''}</div>
+                    </td>
+                    <td>
+                        <div style="font-weight:600;">${r.reason || 'Sin motivo'}</div>
+                    </td>
+                    <td>${this.formatDate(r.event_date)}</td>
+                    <td>${this.formatDate(r.rest_date)}</td>
+                    <td>
+                        <span class="status-pill ${isHours ? 'pill-hours' : 'pill-full-day'}">${isHours ? 'Por horas' : 'Día completo'}</span>
+                    </td>
+                    <td><span class="status-pill" style="background:#ecfeff; color:#0f766e; border:1px solid #99f6e4;">${schedule}</span></td>
+                    <td>
+                        <div style="display:flex; gap:4px; align-items:center;">
+                            <button class="btn-icon edit admin-only" onclick="UIManager.handleEditCompensatory('${r.id}')" title="Editar" style="padding: 4px; font-size: 0.8rem;">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <button class="btn-icon delete admin-only" onclick="UIManager.handleDeleteCompensatory('${r.id}')" title="Borrar" style="padding: 4px; font-size: 0.8rem;">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    </td>
+                `;
+                body.appendChild(tr);
+            });
         });
     },
 

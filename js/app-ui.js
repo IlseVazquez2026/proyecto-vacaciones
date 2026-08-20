@@ -127,28 +127,6 @@ const UIManager = {
             }
         });
 
-        ['comp-filter-person', 'comp-filter-date', 'comp-filter-status'].forEach(id => {
-            const el = document.getElementById(id);
-            if (el) {
-                el.onchange = () => {
-                    if (typeof Visualizer !== 'undefined') Visualizer.renderCompensatoryRestsTable();
-                };
-            }
-        });
-
-        const compFilterClear = document.getElementById('comp-filter-clear');
-        if (compFilterClear) {
-            compFilterClear.onclick = () => {
-                const person = document.getElementById('comp-filter-person');
-                const date = document.getElementById('comp-filter-date');
-                const status = document.getElementById('comp-filter-status');
-                if (person) person.value = '';
-                if (date) date.value = '';
-                if (status) status.value = 'all';
-                if (typeof Visualizer !== 'undefined') Visualizer.renderCompensatoryRestsTable();
-            };
-        }
-
         const btnPermCancel = document.getElementById('btn-perm-cancel');
         if (btnPermCancel) {
             btnPermCancel.onclick = () => this.handleCancelPermissionEdit();
@@ -448,7 +426,6 @@ const UIManager = {
         const restDate = document.getElementById('comp-rest-date').value;
         const reason = document.getElementById('comp-reason').value.trim();
         const restType = document.getElementById('comp-rest-type').value;
-        const status = document.getElementById('comp-status').value || 'programmed';
         const startTime = document.getElementById('comp-start-time').value;
         const endTime = document.getElementById('comp-end-time').value;
 
@@ -484,7 +461,6 @@ const UIManager = {
                 start_time: restType === 'hours' ? startTime : '',
                 end_time: restType === 'hours' ? endTime : '',
                 total_hours: restType === 'hours' ? totalHours : '',
-                status
             });
 
             this.showToast(Visualizer.editingCompensatoryId ? 'Descanso actualizado' : 'Descanso registrado', 'success');
@@ -509,7 +485,6 @@ const UIManager = {
         document.getElementById('comp-rest-date').value = rest.rest_date || '';
         document.getElementById('comp-reason').value = rest.reason || '';
         document.getElementById('comp-rest-type').value = rest.rest_type || 'full_day';
-        document.getElementById('comp-status').value = rest.status || 'programmed';
         document.getElementById('comp-start-time').value = rest.start_time || '';
         document.getElementById('comp-end-time').value = rest.end_time || '';
         document.getElementById('btn-comp-submit').innerHTML = '<i class="fas fa-save"></i> Guardar Cambios';

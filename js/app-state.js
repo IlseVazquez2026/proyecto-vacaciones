@@ -424,6 +424,7 @@ const StateManager = {
         const payload = {
             ...rest,
             id: rest.id || `comp-${Date.now()}`,
+            status: rest.status || 'programmed',
             lastupdate: new Date().toISOString()
         };
 
