@@ -29,5 +29,34 @@ create index if not exists idx_comp_rest_status
 create index if not exists idx_comp_rest_event_date
     on public.compensatory_rest_days (event_date);
 
--- Si tu proyecto usa RLS, ajusta estas políticas para el mismo patrón que
--- ya tengan tus otras tablas. Déjalo así solo si ya manejas acceso por otro medio.
+-- Permisos para que la app web (anon/authenticated) pueda leer y escribir.
+grant usage on schema public to anon, authenticated;
+grant select, insert, update, delete on public.compensatory_rest_days to anon, authenticated;
+
+-- Si RLS está habilitado, estas policies permiten acceso total a la tabla.
+alter table public.compensatory_rest_days enable row level security;
+
+drop policy if exists "comp rest select" on public.compensatory_rest_days;
+create policy "comp rest select"
+on public.compensatory_rest_days
+for select
+using (true);
+
+drop policy if exists "comp rest insert" on public.compensatory_rest_days;
+create policy "comp rest insert"
+on public.compensatory_rest_days
+for insert
+with check (true);
+
+drop policy if exists "comp rest update" on public.compensatory_rest_days;
+create policy "comp rest update"
+on public.compensatory_rest_days
+for update
+using (true)
+with check (true);
+
+drop policy if exists "comp rest delete" on public.compensatory_rest_days;
+create policy "comp rest delete"
+on public.compensatory_rest_days
+for delete
+using (true);
