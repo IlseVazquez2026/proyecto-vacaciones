@@ -862,74 +862,52 @@ const Visualizer = {
 
         body.innerHTML = '';
 
-        const rests = StateManager.getCompensatoryRests();
+        const rests = [...StateManager.getCompensatoryRests()];
         if (rests.length === 0) {
             body.innerHTML = '<tr><td colspan="7" style="text-align:center; padding:30px; opacity:0.6;">Sin descansos compensatorios registrados.</td></tr>';
             return;
         }
 
-        const groups = {};
-        rests.forEach(r => {
-            const date = new Date(`${r.rest_date || r.event_date || '1970-01-01'}T12:00:00`);
-            const key = `${date.getFullYear()}-${date.getMonth()}`;
-            if (!groups[key]) groups[key] = [];
-            groups[key].push(r);
+        const sortedRests = rests.sort((a, b) => {
+            const dateA = new Date(`${a.rest_date || a.event_date || '1970-01-01'}T12:00:00`);
+            const dateB = new Date(`${b.rest_date || b.event_date || '1970-01-01'}T12:00:00`);
+            return dateB - dateA;
         });
 
-        const monthNames = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
-        const sortedKeys = Object.keys(groups).sort((a, b) => {
-            const [yA, mA] = a.split('-').map(Number);
-            const [yB, mB] = b.split('-').map(Number);
-            return (yB * 12 + mB) - (yA * 12 + mA);
-        });
+        sortedRests.forEach(r => {
+            const col = StateManager.getCollaboratorById(r.collaboratorid);
+            const isHours = r.rest_type === 'hours';
+            const schedule = isHours
+                ? `${r.start_time || '--:--'} - ${r.end_time || '--:--'}${r.total_hours ? ` (${r.total_hours})` : ''}`
+                : 'Día completo';
 
-        sortedKeys.forEach(key => {
-            const [year, month] = key.split('-').map(Number);
-            const monthHeader = document.createElement('tr');
-            monthHeader.style.background = '#f9fafb';
-            monthHeader.style.fontWeight = 'bold';
-            monthHeader.innerHTML = `
-                <td colspan="7" style="color:var(--primary-color); padding: 12px 15px;">
-                    <i class="fas fa-calendar-day"></i> ${monthNames[month]} ${year}
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td>
+                    <div style="font-weight:600;">${col ? col.name : 'Desconocido'}</div>
+                    <div style="font-size:0.72rem; color:var(--text-secondary);">${col ? col.id : ''}</div>
+                </td>
+                <td>
+                    <div style="font-weight:600;">${r.reason || 'Sin motivo'}</div>
+                </td>
+                <td>${this.formatDate(r.event_date)}</td>
+                <td>${this.formatDate(r.rest_date)}</td>
+                <td>
+                    <span class="status-pill ${isHours ? 'pill-hours' : 'pill-full-day'}">${isHours ? 'Por horas' : 'Día completo'}</span>
+                </td>
+                <td><span class="status-pill" style="background:#ecfeff; color:#0f766e; border:1px solid #99f6e4;">${schedule}</span></td>
+                <td>
+                    <div style="display:flex; gap:4px; align-items:center;">
+                        <button class="btn-icon edit admin-only" onclick="UIManager.handleEditCompensatory('${r.id}')" title="Editar" style="padding: 4px; font-size: 0.8rem;">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        <button class="btn-icon delete admin-only" onclick="UIManager.handleDeleteCompensatory('${r.id}')" title="Borrar" style="padding: 4px; font-size: 0.8rem;">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
                 </td>
             `;
-            body.appendChild(monthHeader);
-
-            groups[key].forEach(r => {
-                const col = StateManager.getCollaboratorById(r.collaboratorid);
-                const isHours = r.rest_type === 'hours';
-                const schedule = isHours
-                    ? `${r.start_time || '--:--'} - ${r.end_time || '--:--'}${r.total_hours ? ` (${r.total_hours})` : ''}`
-                    : 'Día completo';
-
-                const tr = document.createElement('tr');
-                tr.innerHTML = `
-                    <td>
-                        <div style="font-weight:600;">${col ? col.name : 'Desconocido'}</div>
-                        <div style="font-size:0.72rem; color:var(--text-secondary);">${col ? col.id : ''}</div>
-                    </td>
-                    <td>
-                        <div style="font-weight:600;">${r.reason || 'Sin motivo'}</div>
-                    </td>
-                    <td>${this.formatDate(r.event_date)}</td>
-                    <td>${this.formatDate(r.rest_date)}</td>
-                    <td>
-                        <span class="status-pill ${isHours ? 'pill-hours' : 'pill-full-day'}">${isHours ? 'Por horas' : 'Día completo'}</span>
-                    </td>
-                    <td><span class="status-pill" style="background:#ecfeff; color:#0f766e; border:1px solid #99f6e4;">${schedule}</span></td>
-                    <td>
-                        <div style="display:flex; gap:4px; align-items:center;">
-                            <button class="btn-icon edit admin-only" onclick="UIManager.handleEditCompensatory('${r.id}')" title="Editar" style="padding: 4px; font-size: 0.8rem;">
-                                <i class="fas fa-edit"></i>
-                            </button>
-                            <button class="btn-icon delete admin-only" onclick="UIManager.handleDeleteCompensatory('${r.id}')" title="Borrar" style="padding: 4px; font-size: 0.8rem;">
-                                <i class="fas fa-trash"></i>
-                            </button>
-                        </div>
-                    </td>
-                `;
-                body.appendChild(tr);
-            });
+            body.appendChild(tr);
         });
     },
 
