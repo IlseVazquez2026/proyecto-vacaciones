@@ -192,6 +192,10 @@ const Visualizer = {
         totalField.value = total && total !== 0 ? total : '';
     },
 
+    formatDate(dateStr) {
+        return UIManager.formatDate(dateStr);
+    },
+
     // --- VISTA 0: DASHBOARD ---
     renderDashboard() {
         const stats = StateManager.getStats();
@@ -890,8 +894,8 @@ const Visualizer = {
                 <td>
                     <div style="font-weight:600;">${r.reason || 'Sin motivo'}</div>
                 </td>
-                <td>${this.formatDate(r.event_date)}</td>
-                <td>${this.formatDate(r.rest_date)}</td>
+                <td>${UIManager.formatDate(r.event_date)}</td>
+                <td>${UIManager.formatDate(r.rest_date)}</td>
                 <td>
                     <span class="status-pill ${isHours ? 'pill-hours' : 'pill-full-day'}">${isHours ? 'Por horas' : 'Día completo'}</span>
                 </td>
