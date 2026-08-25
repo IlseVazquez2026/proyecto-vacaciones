@@ -26,6 +26,16 @@ const StateManager = {
     async init() {
         try {
             console.log("StateManager: Iniciando sincronización con Supabase Cloud...");
+
+            const mergeRowsById = (primary = [], secondary = []) => {
+                const map = new Map();
+                [...primary, ...secondary].forEach(row => {
+                    if (row && row.id !== undefined && row.id !== null) {
+                        map.set(row.id, row);
+                    }
+                });
+                return Array.from(map.values());
+            };
             
             // Función interna para sincronizar una tabla individual con registro de errores
             const syncTable = async (tableName, propertyName) => {
@@ -56,19 +66,20 @@ const StateManager = {
                 if (!raw) return;
 
                 const parsedLocal = JSON.parse(raw);
-                if (parsedLocal.length > 0 && (!this.data[propertyName] || this.data[propertyName].length === 0)) {
-                    console.log(`StateManager: ⇅ Detectados ${parsedLocal.length} registros locales en [${propertyName}]. Iniciando sincronización...`);
+                if (parsedLocal.length > 0) {
+                    console.log(`StateManager: ⇅ Detectados ${parsedLocal.length} registros locales en [${propertyName}]. Reconciliando...`);
                     try {
-                        const { error } = await supabase.from(tableName).upsert(parsedLocal);
-                        if (!error) {
+                        if (!this.data[propertyName] || this.data[propertyName].length === 0) {
+                            const { error } = await supabase.from(tableName).upsert(parsedLocal);
+                            if (error) throw error;
                             const { data } = await supabase.from(tableName).select('*');
-                            this.data[propertyName] = data || parsedLocal;
+                            this.data[propertyName] = mergeRowsById(data || [], parsedLocal);
                         } else {
-                            throw error;
+                            this.data[propertyName] = mergeRowsById(this.data[propertyName], parsedLocal);
                         }
                     } catch (migrationError) {
                         console.warn(`StateManager: ⚠ Fallback local para [${propertyName}]`, migrationError);
-                        this.data[propertyName] = parsedLocal;
+                        this.data[propertyName] = mergeRowsById(this.data[propertyName] || [], parsedLocal);
                     }
                 } else if (!this.data[propertyName] || this.data[propertyName].length === 0) {
                     this.data[propertyName] = parsedLocal;
@@ -448,13 +459,13 @@ const StateManager = {
             if (error) throw error;
         } catch (err) {
             console.warn("StateManager: Guardando descanso compensatorio localmente debido a falta de tabla 'compensatory_rest_days' en DB.", err);
-            const current = JSON.parse(localStorage.getItem('vacaciones_compensatory_backup') || '[]');
-            const index = current.findIndex(r => r.id === payload.id);
-            if (index > -1) current[index] = payload; else current.push(payload);
-            localStorage.setItem('vacaciones_compensatory_backup', JSON.stringify(current));
-            this.data.compensatoryrests = current;
-            return payload;
         }
+
+        const current = JSON.parse(localStorage.getItem('vacaciones_compensatory_backup') || '[]');
+        const index = current.findIndex(r => r.id === payload.id);
+        if (index > -1) current[index] = payload; else current.push(payload);
+        localStorage.setItem('vacaciones_compensatory_backup', JSON.stringify(current));
+        this.data.compensatoryrests = current;
 
         await this.init();
         return payload;
