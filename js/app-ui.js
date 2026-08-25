@@ -198,6 +198,10 @@ const UIManager = {
         const activeNav = document.getElementById(navId);
         if (activeNav) activeNav.classList.add('active');
 
+        if (navId === 'nav-compensatory-rests' && typeof this.handleCancelCompensatoryEdit === 'function') {
+            this.handleCancelCompensatoryEdit();
+        }
+
         document.querySelectorAll('.app-view').forEach(v => v.style.display = 'none');
 
         const viewId = navId.replace('nav-', 'view-');
