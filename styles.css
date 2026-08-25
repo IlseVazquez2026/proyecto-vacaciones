@@ -509,6 +509,55 @@ body {
     background-color: #F9FAFB;
 }
 
+.comp-rests-table th,
+.comp-rests-table td {
+    padding: 10px 14px;
+}
+
+.comp-rests-table th {
+    font-size: 0.72rem;
+}
+
+.comp-rest-person {
+    font-weight: 600;
+    line-height: 1.15;
+}
+
+.comp-rest-reason {
+    font-weight: 500;
+    line-height: 1.15;
+    max-width: 260px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.comp-rest-date {
+    white-space: nowrap;
+}
+
+.comp-rest-schedule-pill {
+    padding: 3px 8px;
+    font-size: 0.72rem;
+    display: inline-flex;
+    align-items: center;
+    white-space: nowrap;
+}
+
+.comp-rest-actions {
+    display: flex;
+    gap: 4px;
+    align-items: center;
+}
+
+.comp-rest-actions .btn-icon {
+    width: 28px;
+    height: 28px;
+    min-width: 28px;
+    padding: 0;
+    font-size: 0.75rem;
+}
+
 /* Badges */
 .status-pill {
     padding: 4px 10px;

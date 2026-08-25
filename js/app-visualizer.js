@@ -888,24 +888,23 @@ const Visualizer = {
             const tr = document.createElement('tr');
             tr.innerHTML = `
                 <td>
-                    <div style="font-weight:600;">${col ? col.name : 'Desconocido'}</div>
-                    <div style="font-size:0.72rem; color:var(--text-secondary);">${col ? col.id : ''}</div>
+                    <div class="comp-rest-person">${col ? col.name : 'Desconocido'}</div>
                 </td>
                 <td>
-                    <div style="font-weight:600;">${r.reason || 'Sin motivo'}</div>
+                    <div class="comp-rest-reason">${r.reason || 'Sin motivo'}</div>
                 </td>
-                <td>${UIManager.formatDate(r.event_date)}</td>
-                <td>${UIManager.formatDate(r.rest_date)}</td>
+                <td class="comp-rest-date">${UIManager.formatDate(r.event_date)}</td>
+                <td class="comp-rest-date">${UIManager.formatDate(r.rest_date)}</td>
                 <td>
                     <span class="status-pill ${isHours ? 'pill-hours' : 'pill-full-day'}">${isHours ? 'Por horas' : 'Día completo'}</span>
                 </td>
-                <td><span class="status-pill" style="background:#ecfeff; color:#0f766e; border:1px solid #99f6e4;">${schedule}</span></td>
+                <td><span class="status-pill comp-rest-schedule-pill" style="background:#ecfeff; color:#0f766e; border:1px solid #99f6e4;">${schedule}</span></td>
                 <td>
-                    <div style="display:flex; gap:4px; align-items:center;">
-                        <button class="btn-icon edit admin-only" onclick="UIManager.handleEditCompensatory('${r.id}')" title="Editar" style="padding: 4px; font-size: 0.8rem;">
+                    <div class="comp-rest-actions">
+                        <button class="btn-icon edit admin-only" onclick="UIManager.handleEditCompensatory('${r.id}')" title="Editar">
                             <i class="fas fa-edit"></i>
                         </button>
-                        <button class="btn-icon delete admin-only" onclick="UIManager.handleDeleteCompensatory('${r.id}')" title="Borrar" style="padding: 4px; font-size: 0.8rem;">
+                        <button class="btn-icon delete admin-only" onclick="UIManager.handleDeleteCompensatory('${r.id}')" title="Borrar">
                             <i class="fas fa-trash"></i>
                         </button>
                     </div>
