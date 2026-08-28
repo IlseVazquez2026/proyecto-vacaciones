@@ -498,6 +498,13 @@ const UIManager = {
             Visualizer.renderCompensatoryHoursFields();
             Visualizer.updateCompensatoryHoursPreview();
         }
+
+        const form = document.getElementById('comp-rest-form');
+        if (form) {
+            form.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+        const colSelect = document.getElementById('comp-col-select');
+        if (colSelect) colSelect.focus();
     },
 
     handleCancelCompensatoryEdit() {

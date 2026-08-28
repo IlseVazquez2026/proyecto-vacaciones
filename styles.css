@@ -561,6 +561,17 @@ body {
     min-width: 26px;
     padding: 0;
     font-size: 0.72rem;
+    cursor: pointer;
+}
+
+.comp-rest-actions .btn-icon.edit {
+    color: var(--primary-color);
+    background: rgba(108, 92, 231, 0.06);
+}
+
+.comp-rest-actions .btn-icon.edit:hover {
+    color: #4c3fb8;
+    background: rgba(108, 92, 231, 0.12);
 }
 
 /* Badges */

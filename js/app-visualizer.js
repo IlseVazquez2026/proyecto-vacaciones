@@ -901,10 +901,10 @@ const Visualizer = {
                 <td><span class="status-pill comp-rest-schedule-pill" style="background:#ecfeff; color:#0f766e; border:1px solid #99f6e4;">${schedule}</span></td>
                 <td>
                     <div class="comp-rest-actions">
-                        <button class="btn-icon edit admin-only" onclick="UIManager.handleEditCompensatory('${r.id}')" title="Editar">
+                        <button type="button" class="btn-icon edit admin-only" onclick="UIManager.handleEditCompensatory('${r.id}')" title="Editar">
                             <i class="fas fa-edit"></i>
                         </button>
-                        <button class="btn-icon delete admin-only" onclick="UIManager.handleDeleteCompensatory('${r.id}')" title="Borrar">
+                        <button type="button" class="btn-icon delete admin-only" onclick="UIManager.handleDeleteCompensatory('${r.id}')" title="Borrar">
                             <i class="fas fa-trash"></i>
                         </button>
                     </div>
