@@ -33,6 +33,7 @@ const UIManager = {
             'nav-holidays': 'view-holidays',
             'nav-permissions': 'view-permissions',
             'nav-compensatory-rests': 'view-compensatory-rests',
+            'nav-offsite-meetings': 'view-offsite-meetings',
             'nav-config': 'view-config'
         };
 
@@ -111,6 +112,16 @@ const UIManager = {
             compRestForm.onsubmit = (e) => this.handleCompensatorySubmit(e);
         }
 
+        const offsiteMeetingForm = document.getElementById('offsite-meeting-form');
+        if (offsiteMeetingForm) {
+            offsiteMeetingForm.onsubmit = (e) => this.handleOffsiteMeetingSubmit(e);
+        }
+
+        ['meeting-start-time', 'meeting-end-time'].forEach(id => {
+            const el = document.getElementById(id);
+            if (el) el.oninput = () => Visualizer.updateOffsiteMeetingHoursPreview();
+        });
+
         const compRestType = document.getElementById('comp-rest-type');
         if (compRestType) {
             compRestType.onchange = () => {
@@ -135,6 +146,11 @@ const UIManager = {
         const btnCompCancel = document.getElementById('btn-comp-cancel');
         if (btnCompCancel) {
             btnCompCancel.onclick = () => this.handleCancelCompensatoryEdit();
+        }
+
+        const btnMeetingCancel = document.getElementById('btn-meeting-cancel');
+        if (btnMeetingCancel) {
+            btnMeetingCancel.onclick = () => this.handleCancelOffsiteMeetingEdit();
         }
 
         const btnUpload = document.getElementById('btn-trigger-upload');
@@ -201,6 +217,9 @@ const UIManager = {
         if (navId === 'nav-compensatory-rests' && typeof this.handleCancelCompensatoryEdit === 'function') {
             this.handleCancelCompensatoryEdit();
         }
+        if (navId === 'nav-offsite-meetings' && typeof this.handleCancelOffsiteMeetingEdit === 'function') {
+            this.handleCancelOffsiteMeetingEdit();
+        }
 
         document.querySelectorAll('.app-view').forEach(v => v.style.display = 'none');
 
@@ -238,6 +257,7 @@ const UIManager = {
             case 'holidays': this.renderHolidaysTable(); break;
             case 'permissions': Visualizer.renderPermissionsView(); break;
             case 'compensatory-rests': Visualizer.renderCompensatoryRestsView(); break;
+            case 'offsite-meetings': Visualizer.renderOffsiteMeetingsView(); break;
             case 'config': Visualizer.renderUserManagement(); break;
         }
     },
@@ -526,6 +546,93 @@ const UIManager = {
             this.showToast('Descanso compensatorio eliminado', 'success');
             if (Visualizer.editingCompensatoryId === id) this.handleCancelCompensatoryEdit();
             Visualizer.renderCompensatoryRestsView();
+            Visualizer.renderCalendar();
+        }
+    },
+
+    async handleOffsiteMeetingSubmit(e) {
+        e.preventDefault();
+        const btn = e.target.querySelector('button[type="submit"]');
+        const originalText = btn.innerHTML;
+        const colId = document.getElementById('meeting-col-select').value;
+        const meetingDate = document.getElementById('meeting-date').value;
+        const startTime = document.getElementById('meeting-start-time').value;
+        const endTime = document.getElementById('meeting-end-time').value;
+        const reason = document.getElementById('meeting-reason').value.trim();
+        const notes = document.getElementById('meeting-notes').value.trim();
+
+        if (!colId || !meetingDate || !startTime || !endTime || !reason) {
+            this.showToast('Completa colaborador, fecha, horario y motivo', 'error');
+            return;
+        }
+
+        const totalHours = VacationManager.calculateHours(startTime, endTime);
+        if (!totalHours || totalHours === 0) {
+            this.showToast('La hora de regreso debe ser mayor a la hora de salida', 'error');
+            return;
+        }
+
+        try {
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Guardando...';
+            await StateManager.saveOffsiteMeeting({
+                id: Visualizer.editingOffsiteMeetingId,
+                collaboratorid: colId,
+                meeting_date: meetingDate,
+                reason,
+                start_time: startTime,
+                end_time: endTime,
+                total_hours: totalHours,
+                notes
+            });
+            this.showToast(Visualizer.editingOffsiteMeetingId ? 'Junta actualizada' : 'Junta registrada', 'success');
+            this.handleCancelOffsiteMeetingEdit();
+            Visualizer.renderOffsiteMeetingsView();
+            Visualizer.renderCalendar();
+        } catch (err) {
+            this.showToast('Error: ' + err.message, 'error');
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = originalText;
+        }
+    },
+
+    handleEditOffsiteMeeting(id) {
+        const meeting = StateManager.getOffsiteMeetingById(id);
+        if (!meeting) return;
+        Visualizer.editingOffsiteMeetingId = id;
+        document.getElementById('meeting-col-select').value = meeting.collaboratorid;
+        document.getElementById('meeting-date').value = meeting.meeting_date || '';
+        document.getElementById('meeting-start-time').value = meeting.start_time || '';
+        document.getElementById('meeting-end-time').value = meeting.end_time || '';
+        document.getElementById('meeting-reason').value = meeting.reason || '';
+        document.getElementById('meeting-notes').value = meeting.notes || '';
+        document.getElementById('btn-meeting-submit').innerHTML = '<i class="fas fa-save"></i> Guardar Cambios';
+        document.getElementById('btn-meeting-cancel').style.display = 'block';
+        Visualizer.updateOffsiteMeetingHoursPreview();
+        const form = document.getElementById('offsite-meeting-form');
+        if (form) form.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    },
+
+    handleCancelOffsiteMeetingEdit() {
+        Visualizer.editingOffsiteMeetingId = null;
+        const form = document.getElementById('offsite-meeting-form');
+        if (form) form.reset();
+        const total = document.getElementById('meeting-total-hours');
+        if (total) total.value = '';
+        const submit = document.getElementById('btn-meeting-submit');
+        if (submit) submit.innerHTML = '<i class="fas fa-save"></i> Registrar Junta';
+        const cancel = document.getElementById('btn-meeting-cancel');
+        if (cancel) cancel.style.display = 'none';
+    },
+
+    async handleDeleteOffsiteMeeting(id) {
+        if (!AuthManager.checkPermission('admin')) return;
+        if (confirm('¿Eliminar este registro de junta fuera de oficina?')) {
+            await StateManager.deleteOffsiteMeeting(id);
+            this.showToast('Junta eliminada', 'success');
+            if (Visualizer.editingOffsiteMeetingId === id) this.handleCancelOffsiteMeetingEdit();
+            Visualizer.renderOffsiteMeetingsView();
             Visualizer.renderCalendar();
         }
     },

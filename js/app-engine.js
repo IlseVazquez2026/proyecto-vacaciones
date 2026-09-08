@@ -304,6 +304,31 @@ const VacationManager = {
             }
         });
 
+        // 4. Agregar juntas fuera de oficina
+        const meetings = StateManager.getOffsiteMeetings();
+        meetings.forEach(m => {
+            if (!m.meeting_date) return;
+            const cleanDate = String(m.meeting_date).trim();
+            if (cleanDate.startsWith(prefix)) {
+                const col = StateManager.getCollaboratorById(m.collaboratorid);
+                const schedule = m.start_time && m.end_time ? `${m.start_time} - ${m.end_time}` : 'Horario no indicado';
+                events.push({
+                    eventType: 'offsite-meeting',
+                    dayId: m.id,
+                    colId: m.collaboratorid,
+                    colName: col ? col.name : 'Desconocido',
+                    date: cleanDate,
+                    reason: m.reason || '',
+                    startTime: m.start_time || '',
+                    endTime: m.end_time || '',
+                    totalHours: m.total_hours || '',
+                    schedule,
+                    isWeekend: !this.isBusinessDay(cleanDate),
+                    tooltip: `${col ? col.name : 'Desconocido'} | Junta fuera de oficina | ${m.reason || 'Sin motivo'} | ${schedule}${m.total_hours ? ` (${m.total_hours})` : ''}`
+                });
+            }
+        });
+
         return events;
     },
 

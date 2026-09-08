@@ -10,6 +10,7 @@ const StateManager = {
         vacationdays: [],
         permissions: [],
         compensatoryrests: [],
+        officemeetings: [],
         vacationrules: {
             pre2023: [
                 { years: 1, days: 6 }, { years: 2, days: 8 }, { years: 3, days: 10 }, { years: 4, days: 12 }, { years: 5, days: 14 },
@@ -58,7 +59,8 @@ const StateManager = {
                 syncTable('vacation_requests', 'vacationrequests'),
                 syncTable('vacation_days', 'vacationdays'),
                 syncTable('permissions', 'permissions'),
-                syncTable('compensatory_rest_days', 'compensatoryrests')
+                syncTable('compensatory_rest_days', 'compensatoryrests'),
+                syncTable('offsite_meetings', 'officemeetings')
             ]);
 
             const restoreLocalBackup = async (storageKey, propertyName, tableName) => {
@@ -88,6 +90,7 @@ const StateManager = {
 
             await restoreLocalBackup('vacaciones_permissions_backup', 'permissions', 'permissions');
             await restoreLocalBackup('vacaciones_compensatory_backup', 'compensatoryrests', 'compensatory_rest_days');
+            await restoreLocalBackup('vacaciones_offsite_meetings_backup', 'officemeetings', 'offsite_meetings');
 
             // Restaurar sesión de usuario (si existe localmente)
             const savedUser = localStorage.getItem('vacaciones_user_session');
@@ -484,6 +487,67 @@ const StateManager = {
         localStorage.setItem('vacaciones_compensatory_backup', JSON.stringify(filtered));
         this.data.compensatoryrests = filtered;
 
+        await this.init();
+    },
+
+    // --- OFFSITE MEETING METHODS ---
+    getOffsiteMeetings(collaboratorId = null) {
+        let list = this.data.officemeetings || [];
+        if (collaboratorId) list = list.filter(m => m.collaboratorid === collaboratorId);
+        return [...list].sort((a, b) => {
+            const dateA = new Date(`${a.meeting_date || '1970-01-01'}T12:00:00`);
+            const dateB = new Date(`${b.meeting_date || '1970-01-01'}T12:00:00`);
+            return dateB - dateA;
+        });
+    },
+
+    getOffsiteMeetingById(id) {
+        return (this.data.officemeetings || []).find(m => m.id === id);
+    },
+
+    async saveOffsiteMeeting(meeting) {
+        const payload = {
+            ...meeting,
+            id: meeting.id || `meeting-${Date.now()}`,
+            lastupdate: new Date().toISOString()
+        };
+        const sanitizedPayload = {
+            id: payload.id,
+            collaboratorid: payload.collaboratorid,
+            meeting_date: payload.meeting_date,
+            reason: payload.reason,
+            start_time: payload.start_time,
+            end_time: payload.end_time,
+            total_hours: payload.total_hours,
+            notes: payload.notes,
+            lastupdate: payload.lastupdate
+        };
+        try {
+            const { error } = await supabase.from('offsite_meetings').upsert(sanitizedPayload);
+            if (error) throw error;
+        } catch (err) {
+            console.warn("StateManager: Guardando junta fuera de oficina localmente debido a falta de tabla 'offsite_meetings' en DB.", err);
+        }
+        const current = JSON.parse(localStorage.getItem('vacaciones_offsite_meetings_backup') || '[]');
+        const index = current.findIndex(m => m.id === payload.id);
+        if (index > -1) current[index] = payload; else current.push(payload);
+        localStorage.setItem('vacaciones_offsite_meetings_backup', JSON.stringify(current));
+        this.data.officemeetings = current;
+        await this.init();
+        return payload;
+    },
+
+    async deleteOffsiteMeeting(id) {
+        try {
+            const { error } = await supabase.from('offsite_meetings').delete().eq('id', id);
+            if (error) throw error;
+        } catch (err) {
+            console.warn("StateManager: Error en nube, procediendo con borrado local de junta fuera de oficina.", err);
+        }
+        const current = JSON.parse(localStorage.getItem('vacaciones_offsite_meetings_backup') || '[]');
+        const filtered = current.filter(m => m.id !== id);
+        localStorage.setItem('vacaciones_offsite_meetings_backup', JSON.stringify(filtered));
+        this.data.officemeetings = filtered;
         await this.init();
     },
 

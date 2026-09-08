@@ -57,6 +57,10 @@
                     <i class="fas fa-calendar-check"></i>
                     <span>Descansos compensatorios</span>
                 </a>
+                <a href="#" class="menu-item" id="nav-offsite-meetings">
+                    <i class="fas fa-handshake"></i>
+                    <span>Juntas fuera de oficina</span>
+                </a>
 
                 <div class="menu-divider admin-only"></div>
                 <div class="menu-label admin-only">Sistema</div>
@@ -142,6 +146,65 @@
                             <div id="upcoming-list" class="upcoming-list">
                                 <!-- JS -->
                             </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- 8. JUNTAS FUERA DE OFICINA -->
+                <section id="view-offsite-meetings" class="app-view" style="display: none;">
+                    <div class="view-header">
+                        <div>
+                            <h1>Juntas fuera de oficina</h1>
+                            <p>Registra las salidas por juntas y consulta su horario directamente en el calendario.</p>
+                        </div>
+                        <div class="comp-rest-legend">
+                            <span class="legend-chip" style="background:#f5f3ff; color:#6d28d9; border-color:#ddd6fe;"><i class="fas fa-handshake"></i> Junta</span>
+                        </div>
+                    </div>
+
+                    <div class="dashboard-grid perm-grid" style="display: grid; grid-template-columns: 360px 1fr; gap: 30px; margin-top: 30px;">
+                        <div class="card" style="padding: 25px;">
+                            <h3 style="margin-top: 0; margin-bottom: 20px;"><i class="fas fa-handshake" style="color:#7c3aed;"></i> Nueva Junta</h3>
+                            <form id="offsite-meeting-form">
+                                <div class="form-group" style="margin-bottom: 20px;">
+                                    <label>Colaborador</label>
+                                    <select id="meeting-col-select" class="input-field" required><option value="">Selecciona...</option></select>
+                                </div>
+                                <div class="form-group">
+                                    <label>Fecha de la junta</label>
+                                    <input type="date" id="meeting-date" class="input-field" required>
+                                </div>
+                                <div class="form-grid" style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-top:16px;">
+                                    <div class="form-group"><label>Hora de salida</label><input type="time" id="meeting-start-time" class="input-field" required></div>
+                                    <div class="form-group"><label>Hora de regreso</label><input type="time" id="meeting-end-time" class="input-field" required></div>
+                                </div>
+                                <div class="form-group" style="margin-top:12px;">
+                                    <label>Total de horas</label>
+                                    <input type="text" id="meeting-total-hours" class="input-field" readonly placeholder="Se calcula automáticamente">
+                                </div>
+                                <div class="form-group" style="margin-top:16px;">
+                                    <label>Motivo / Junta</label>
+                                    <textarea id="meeting-reason" class="input-field" placeholder="Ej: Junta con cliente, reunión externa..." style="height:70px;" required></textarea>
+                                </div>
+                                <div class="form-group" style="margin-top:12px;">
+                                    <label>Notas (opcional)</label>
+                                    <textarea id="meeting-notes" class="input-field" style="height:55px;"></textarea>
+                                </div>
+                                <div style="display:flex; gap:10px; margin-top:20px;">
+                                    <button type="submit" id="btn-meeting-submit" class="btn btn-primary admin-only" style="flex:2;"><i class="fas fa-save"></i> Registrar Junta</button>
+                                    <button type="button" id="btn-meeting-cancel" class="btn btn-secondary admin-only" style="display:none; flex:1;">Cancelar</button>
+                                </div>
+                                <p class="guest-msg" style="display:none; color:var(--error-color); font-size:0.8rem; margin-top:10px; text-align:center;">Solo administradores pueden registrar juntas.</p>
+                            </form>
+                        </div>
+                        <div class="card">
+                            <div class="card-header" style="padding:20px 25px; border-bottom:1px solid var(--border-color);"><h3 style="margin:0;"><i class="fas fa-list"></i> Registros de juntas</h3></div>
+                            <div class="card-body" style="padding:0;"><div class="table-responsive">
+                                <table class="data-table comp-rests-table" style="font-size:0.85rem;">
+                                    <thead><tr><th>Colaborador</th><th>Fecha</th><th>Motivo / Junta</th><th>Horario</th><th>Total</th><th>Acción</th></tr></thead>
+                                    <tbody id="offsite-meetings-table-body"></tbody>
+                                </table>
+                            </div></div>
                         </div>
                     </div>
                 </section>
@@ -745,12 +808,12 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="js/supabase-config.js"></script>
     <script src="js/xlsx.js"></script>
-    <script src="js/app-state.js?v=1.7"></script>
-    <script src="js/app-engine.js?v=1.7"></script>
-    <script src="js/app-auth.js?v=1.7"></script>
-    <script src="js/app-visualizer.js?v=1.7"></script>
-    <script src="js/app-ui.js?v=1.7"></script>
-    <script src="js/app-main.js?v=1.7"></script>
+    <script src="js/app-state.js?v=1.8"></script>
+    <script src="js/app-engine.js?v=1.8"></script>
+    <script src="js/app-auth.js?v=1.8"></script>
+    <script src="js/app-visualizer.js?v=1.8"></script>
+    <script src="js/app-ui.js?v=1.8"></script>
+    <script src="js/app-main.js?v=1.8"></script>
     <script>
         // Diagnóstico post-carga
         window.addEventListener('load', () => {

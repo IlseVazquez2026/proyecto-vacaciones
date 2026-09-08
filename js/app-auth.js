@@ -87,7 +87,7 @@ const AuthManager = {
         }
         
         // Redirigir invitado si está en una vista bloqueada
-        if (!isAdmin && UIManager.currentView !== 'vacations' && UIManager.currentView !== 'permissions' && UIManager.currentView !== 'compensatory-rests') {
+        if (!isAdmin && UIManager.currentView !== 'vacations' && UIManager.currentView !== 'permissions' && UIManager.currentView !== 'compensatory-rests' && UIManager.currentView !== 'offsite-meetings') {
             UIManager.navigate('nav-vacations');
         }
     },

@@ -9,6 +9,7 @@ const Visualizer = {
     permissionSelectedDate: null,
     editingPermissionId: null,
     editingCompensatoryId: null,
+    editingOffsiteMeetingId: null,
     selectedColId: null,
 
     init() {
@@ -188,6 +189,15 @@ const Visualizer = {
         const end = document.getElementById('comp-end-time');
         if (!typeSelect || !totalField || typeSelect.value !== 'hours') return;
 
+        const total = VacationManager.calculateHours(start ? start.value : '', end ? end.value : '');
+        totalField.value = total && total !== 0 ? total : '';
+    },
+
+    updateOffsiteMeetingHoursPreview() {
+        const totalField = document.getElementById('meeting-total-hours');
+        if (!totalField) return;
+        const start = document.getElementById('meeting-start-time');
+        const end = document.getElementById('meeting-end-time');
         const total = VacationManager.calculateHours(start ? start.value : '', end ? end.value : '');
         totalField.value = total && total !== 0 ? total : '';
     },
@@ -399,6 +409,10 @@ const Visualizer = {
                                 inlineStyle = isHours
                                     ? `background-color: #ecfeff !important; color: #0f766e !important; font-weight: 600 !important; border-left: 4px solid #14b8a6 !important; border-style: dashed !important; white-space: normal !important; line-height: 1.1 !important;`
                                     : `background-color: #ccfbf1 !important; color: #0f766e !important; font-weight: 600 !important; border-left: 4px solid #0f766e !important; white-space: normal !important; line-height: 1.1 !important;`;
+                            } else if (e.eventType === 'offsite-meeting') {
+                                cssClass = 'status-offsite-meeting';
+                                displayText = `${e.colName} · ${e.schedule}`;
+                                inlineStyle = 'background-color: #ede9fe !important; color: #6d28d9 !important; font-weight: 600 !important; border-left: 4px solid #8b5cf6 !important; white-space: normal !important; line-height: 1.1 !important;';
                             } else if (!e.isWeekend) {
                                 let hue = colColorMap[e.colId];
                                 if (hue === undefined) {
@@ -858,6 +872,45 @@ const Visualizer = {
         this.renderCompensatoryHoursFields();
         this.updateCompensatoryHoursPreview();
         this.renderCompensatoryRestsTable();
+    },
+
+    renderOffsiteMeetingsView() {
+        const allColabs = StateManager.getCollaborators('all');
+        const select = document.getElementById('meeting-col-select');
+        if (select) {
+            select.innerHTML = '<option value="">Selecciona Colaborador...</option>' +
+                allColabs.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
+        }
+        this.updateOffsiteMeetingHoursPreview();
+        this.renderOffsiteMeetingsTable();
+    },
+
+    renderOffsiteMeetingsTable() {
+        const body = document.getElementById('offsite-meetings-table-body');
+        if (!body) return;
+        const meetings = StateManager.getOffsiteMeetings();
+        body.innerHTML = '';
+        if (meetings.length === 0) {
+            body.innerHTML = '<tr><td colspan="6" style="text-align:center; padding:30px; opacity:0.6;">Sin juntas fuera de oficina registradas.</td></tr>';
+            return;
+        }
+        meetings.forEach(m => {
+            const col = StateManager.getCollaboratorById(m.collaboratorid);
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td><div class="comp-rest-person">${col ? col.name : 'Desconocido'}</div></td>
+                <td class="comp-rest-date">${UIManager.formatDate(m.meeting_date)}</td>
+                <td><div class="comp-rest-reason">${m.reason || 'Sin motivo'}</div></td>
+                <td><span class="status-pill meeting-schedule-pill">${m.start_time || '--:--'} - ${m.end_time || '--:--'}</span></td>
+                <td><strong>${m.total_hours || '--'}</strong></td>
+                <td>
+                    <div class="comp-rest-actions">
+                        <button type="button" class="btn-icon edit admin-only" onclick="UIManager.handleEditOffsiteMeeting('${m.id}')" title="Editar"><i class="fas fa-edit"></i></button>
+                        <button type="button" class="btn-icon delete admin-only" onclick="UIManager.handleDeleteOffsiteMeeting('${m.id}')" title="Borrar"><i class="fas fa-trash"></i></button>
+                    </div>
+                </td>`;
+            body.appendChild(tr);
+        });
     },
 
     renderCompensatoryRestsTable() {
