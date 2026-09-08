@@ -515,7 +515,6 @@ const StateManager = {
             id: payload.id,
             collaboratorid: payload.collaboratorid,
             meeting_date: payload.meeting_date,
-            reason: payload.reason,
             start_time: payload.start_time,
             end_time: payload.end_time,
             total_hours: payload.total_hours,

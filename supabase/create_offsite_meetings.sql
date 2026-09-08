@@ -2,7 +2,7 @@ create table if not exists public.offsite_meetings (
     id text primary key,
     collaboratorid text not null,
     meeting_date date not null,
-    reason text not null,
+    reason text null,
     start_time time not null,
     end_time time not null,
     total_hours text not null,

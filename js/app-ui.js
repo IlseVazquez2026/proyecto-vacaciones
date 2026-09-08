@@ -558,11 +558,10 @@ const UIManager = {
         const meetingDate = document.getElementById('meeting-date').value;
         const startTime = document.getElementById('meeting-start-time').value;
         const endTime = document.getElementById('meeting-end-time').value;
-        const reason = document.getElementById('meeting-reason').value.trim();
         const notes = document.getElementById('meeting-notes').value.trim();
 
-        if (!colId || !meetingDate || !startTime || !endTime || !reason) {
-            this.showToast('Completa colaborador, fecha, horario y motivo', 'error');
+        if (!colId || !meetingDate || !startTime || !endTime) {
+            this.showToast('Completa colaborador, fecha y horario', 'error');
             return;
         }
 
@@ -579,7 +578,6 @@ const UIManager = {
                 id: Visualizer.editingOffsiteMeetingId,
                 collaboratorid: colId,
                 meeting_date: meetingDate,
-                reason,
                 start_time: startTime,
                 end_time: endTime,
                 total_hours: totalHours,
@@ -605,7 +603,6 @@ const UIManager = {
         document.getElementById('meeting-date').value = meeting.meeting_date || '';
         document.getElementById('meeting-start-time').value = meeting.start_time || '';
         document.getElementById('meeting-end-time').value = meeting.end_time || '';
-        document.getElementById('meeting-reason').value = meeting.reason || '';
         document.getElementById('meeting-notes').value = meeting.notes || '';
         document.getElementById('btn-meeting-submit').innerHTML = '<i class="fas fa-save"></i> Guardar Cambios';
         document.getElementById('btn-meeting-cancel').style.display = 'block';
