@@ -891,7 +891,7 @@ const Visualizer = {
         const meetings = StateManager.getOffsiteMeetings();
         body.innerHTML = '';
         if (meetings.length === 0) {
-            body.innerHTML = '<tr><td colspan="6" style="text-align:center; padding:30px; opacity:0.6;">Sin juntas fuera de oficina registradas.</td></tr>';
+            body.innerHTML = '<tr><td colspan="5" style="text-align:center; padding:30px; opacity:0.6;">Sin juntas fuera de oficina registradas.</td></tr>';
             return;
         }
         meetings.forEach(m => {
@@ -900,7 +900,6 @@ const Visualizer = {
             tr.innerHTML = `
                 <td><div class="comp-rest-person">${col ? col.name : 'Desconocido'}</div></td>
                 <td class="comp-rest-date">${UIManager.formatDate(m.meeting_date)}</td>
-                <td><div class="comp-rest-reason">${m.reason || 'Sin motivo'}</div></td>
                 <td><span class="status-pill meeting-schedule-pill">${m.start_time || '--:--'} - ${m.end_time || '--:--'}</span></td>
                 <td><strong>${m.total_hours || '--'}</strong></td>
                 <td>
