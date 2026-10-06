@@ -11,6 +11,7 @@ const StateManager = {
         permissions: [],
         compensatoryrests: [],
         officemeetings: [],
+        incapacities: [],
         vacationrules: {
             pre2023: [
                 { years: 1, days: 6 }, { years: 2, days: 8 }, { years: 3, days: 10 }, { years: 4, days: 12 }, { years: 5, days: 14 },
@@ -60,7 +61,8 @@ const StateManager = {
                 syncTable('vacation_days', 'vacationdays'),
                 syncTable('permissions', 'permissions'),
                 syncTable('compensatory_rest_days', 'compensatoryrests'),
-                syncTable('offsite_meetings', 'officemeetings')
+                syncTable('offsite_meetings', 'officemeetings'),
+                syncTable('incapacities', 'incapacities')
             ]);
 
             const restoreLocalBackup = async (storageKey, propertyName, tableName) => {
@@ -91,6 +93,7 @@ const StateManager = {
             await restoreLocalBackup('vacaciones_permissions_backup', 'permissions', 'permissions');
             await restoreLocalBackup('vacaciones_compensatory_backup', 'compensatoryrests', 'compensatory_rest_days');
             await restoreLocalBackup('vacaciones_offsite_meetings_backup', 'officemeetings', 'offsite_meetings');
+            await restoreLocalBackup('vacaciones_incapacities_backup', 'incapacities', 'incapacities');
 
             // Restaurar sesión de usuario (si existe localmente)
             const savedUser = localStorage.getItem('vacaciones_user_session');
@@ -547,6 +550,67 @@ const StateManager = {
         const filtered = current.filter(m => m.id !== id);
         localStorage.setItem('vacaciones_offsite_meetings_backup', JSON.stringify(filtered));
         this.data.officemeetings = filtered;
+        await this.init();
+    },
+
+    // --- INCAPACITY METHODS ---
+    getIncapacities(collaboratorId = null) {
+        let list = this.data.incapacities || [];
+        if (collaboratorId) list = list.filter(i => i.collaboratorid === collaboratorId);
+        return [...list].sort((a, b) => {
+            const dateA = new Date(`${a.start_date || '1970-01-01'}T12:00:00`);
+            const dateB = new Date(`${b.start_date || '1970-01-01'}T12:00:00`);
+            return dateB - dateA;
+        });
+    },
+
+    getIncapacityById(id) {
+        return (this.data.incapacities || []).find(i => i.id === id);
+    },
+
+    async saveIncapacity(incapacity) {
+        const payload = {
+            ...incapacity,
+            id: incapacity.id || `incap-${Date.now()}`,
+            lastupdate: new Date().toISOString()
+        };
+        const sanitizedPayload = {
+            id: payload.id,
+            collaboratorid: payload.collaboratorid,
+            start_date: payload.start_date,
+            end_date: payload.end_date,
+            type: payload.type || 'full_day',
+            notes: payload.notes,
+            lastupdate: payload.lastupdate
+        };
+
+        try {
+            const { error } = await supabase.from('incapacities').upsert(sanitizedPayload);
+            if (error) throw error;
+        } catch (err) {
+            console.warn("StateManager: Guardando incapacidad localmente debido a falta de tabla 'incapacities' en DB.", err);
+        }
+
+        const current = JSON.parse(localStorage.getItem('vacaciones_incapacities_backup') || '[]');
+        const index = current.findIndex(i => i.id === payload.id);
+        if (index > -1) current[index] = payload; else current.push(payload);
+        localStorage.setItem('vacaciones_incapacities_backup', JSON.stringify(current));
+        this.data.incapacities = current;
+        await this.init();
+        return payload;
+    },
+
+    async deleteIncapacity(id) {
+        try {
+            const { error } = await supabase.from('incapacities').delete().eq('id', id);
+            if (error) throw error;
+        } catch (err) {
+            console.warn("StateManager: Error en nube, procediendo con borrado local de incapacidad.", err);
+        }
+        const current = JSON.parse(localStorage.getItem('vacaciones_incapacities_backup') || '[]');
+        const filtered = current.filter(i => i.id !== id);
+        localStorage.setItem('vacaciones_incapacities_backup', JSON.stringify(filtered));
+        this.data.incapacities = filtered;
         await this.init();
     },
 

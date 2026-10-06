@@ -329,6 +329,28 @@ const VacationManager = {
             }
         });
 
+        // 5. Agregar incapacidades como días completos dentro del rango
+        const incapacities = StateManager.getIncapacities();
+        incapacities.forEach(i => {
+            if (!i.start_date || !i.end_date) return;
+            const start = new Date(`${i.start_date}T12:00:00`);
+            const end = new Date(`${i.end_date}T12:00:00`);
+            for (const current = new Date(start); current <= end; current.setDate(current.getDate() + 1)) {
+                const cleanDate = `${current.getFullYear()}-${String(current.getMonth() + 1).padStart(2, '0')}-${String(current.getDate()).padStart(2, '0')}`;
+                if (!cleanDate.startsWith(prefix)) continue;
+                const col = StateManager.getCollaboratorById(i.collaboratorid);
+                events.push({
+                    eventType: 'incapacity',
+                    dayId: `${i.id}-${cleanDate}`,
+                    colId: i.collaboratorid,
+                    colName: col ? col.name : 'Desconocido',
+                    date: cleanDate,
+                    isWeekend: !this.isBusinessDay(cleanDate),
+                    tooltip: `${col ? col.name : 'Desconocido'} | Incapacidad | ${i.start_date} al ${i.end_date}`
+                });
+            }
+        });
+
         return events;
     },
 

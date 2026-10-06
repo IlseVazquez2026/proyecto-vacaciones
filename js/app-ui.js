@@ -34,6 +34,7 @@ const UIManager = {
             'nav-permissions': 'view-permissions',
             'nav-compensatory-rests': 'view-compensatory-rests',
             'nav-offsite-meetings': 'view-offsite-meetings',
+            'nav-incapacities': 'view-incapacities',
             'nav-config': 'view-config'
         };
 
@@ -117,6 +118,11 @@ const UIManager = {
             offsiteMeetingForm.onsubmit = (e) => this.handleOffsiteMeetingSubmit(e);
         }
 
+        const incapacityForm = document.getElementById('incapacity-form');
+        if (incapacityForm) {
+            incapacityForm.onsubmit = (e) => this.handleIncapacitySubmit(e);
+        }
+
         ['meeting-start-time', 'meeting-end-time'].forEach(id => {
             const el = document.getElementById(id);
             if (el) el.oninput = () => Visualizer.updateOffsiteMeetingHoursPreview();
@@ -151,6 +157,11 @@ const UIManager = {
         const btnMeetingCancel = document.getElementById('btn-meeting-cancel');
         if (btnMeetingCancel) {
             btnMeetingCancel.onclick = () => this.handleCancelOffsiteMeetingEdit();
+        }
+
+        const btnIncapacityCancel = document.getElementById('btn-incapacity-cancel');
+        if (btnIncapacityCancel) {
+            btnIncapacityCancel.onclick = () => this.handleCancelIncapacityEdit();
         }
 
         const btnUpload = document.getElementById('btn-trigger-upload');
@@ -220,6 +231,9 @@ const UIManager = {
         if (navId === 'nav-offsite-meetings' && typeof this.handleCancelOffsiteMeetingEdit === 'function') {
             this.handleCancelOffsiteMeetingEdit();
         }
+        if (navId === 'nav-incapacities' && typeof this.handleCancelIncapacityEdit === 'function') {
+            this.handleCancelIncapacityEdit();
+        }
 
         document.querySelectorAll('.app-view').forEach(v => v.style.display = 'none');
 
@@ -258,6 +272,7 @@ const UIManager = {
             case 'permissions': Visualizer.renderPermissionsView(); break;
             case 'compensatory-rests': Visualizer.renderCompensatoryRestsView(); break;
             case 'offsite-meetings': Visualizer.renderOffsiteMeetingsView(); break;
+            case 'incapacities': Visualizer.renderIncapacitiesView(); break;
             case 'config': Visualizer.renderUserManagement(); break;
         }
     },
@@ -630,6 +645,82 @@ const UIManager = {
             this.showToast('Junta eliminada', 'success');
             if (Visualizer.editingOffsiteMeetingId === id) this.handleCancelOffsiteMeetingEdit();
             Visualizer.renderOffsiteMeetingsView();
+            Visualizer.renderCalendar();
+        }
+    },
+
+    async handleIncapacitySubmit(e) {
+        e.preventDefault();
+        const btn = e.target.querySelector('button[type="submit"]');
+        const originalText = btn.innerHTML;
+        const collaboratorid = document.getElementById('incapacity-col-select').value;
+        const startDate = document.getElementById('incapacity-start-date').value;
+        const endDate = document.getElementById('incapacity-end-date').value;
+        const notes = document.getElementById('incapacity-notes').value.trim();
+
+        if (!collaboratorid || !startDate || !endDate) {
+            this.showToast('Completa colaborador y fechas', 'error');
+            return;
+        }
+        if (endDate < startDate) {
+            this.showToast('La fecha de término no puede ser anterior al inicio', 'error');
+            return;
+        }
+
+        try {
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Guardando...';
+            await StateManager.saveIncapacity({
+                id: Visualizer.editingIncapacityId,
+                collaboratorid,
+                start_date: startDate,
+                end_date: endDate,
+                type: 'full_day',
+                notes
+            });
+            this.showToast(Visualizer.editingIncapacityId ? 'Incapacidad actualizada' : 'Incapacidad registrada', 'success');
+            this.handleCancelIncapacityEdit();
+            Visualizer.renderIncapacitiesView();
+            Visualizer.renderCalendar();
+        } catch (err) {
+            this.showToast('Error: ' + err.message, 'error');
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = originalText;
+        }
+    },
+
+    handleEditIncapacity(id) {
+        const incapacity = StateManager.getIncapacityById(id);
+        if (!incapacity) return;
+        Visualizer.editingIncapacityId = id;
+        document.getElementById('incapacity-col-select').value = incapacity.collaboratorid;
+        document.getElementById('incapacity-start-date').value = incapacity.start_date || '';
+        document.getElementById('incapacity-end-date').value = incapacity.end_date || '';
+        document.getElementById('incapacity-notes').value = incapacity.notes || '';
+        document.getElementById('btn-incapacity-submit').innerHTML = '<i class="fas fa-save"></i> Guardar Cambios';
+        document.getElementById('btn-incapacity-cancel').style.display = 'block';
+        const form = document.getElementById('incapacity-form');
+        if (form) form.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    },
+
+    handleCancelIncapacityEdit() {
+        Visualizer.editingIncapacityId = null;
+        const form = document.getElementById('incapacity-form');
+        if (form) form.reset();
+        const submit = document.getElementById('btn-incapacity-submit');
+        if (submit) submit.innerHTML = '<i class="fas fa-save"></i> Registrar Incapacidad';
+        const cancel = document.getElementById('btn-incapacity-cancel');
+        if (cancel) cancel.style.display = 'none';
+    },
+
+    async handleDeleteIncapacity(id) {
+        if (!AuthManager.checkPermission('admin')) return;
+        if (confirm('¿Eliminar este registro de incapacidad?')) {
+            await StateManager.deleteIncapacity(id);
+            this.showToast('Incapacidad eliminada', 'success');
+            if (Visualizer.editingIncapacityId === id) this.handleCancelIncapacityEdit();
+            Visualizer.renderIncapacitiesView();
             Visualizer.renderCalendar();
         }
     },

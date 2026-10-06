@@ -10,6 +10,7 @@ const Visualizer = {
     editingPermissionId: null,
     editingCompensatoryId: null,
     editingOffsiteMeetingId: null,
+    editingIncapacityId: null,
     selectedColId: null,
 
     init() {
@@ -367,6 +368,7 @@ const Visualizer = {
             const hasHoliday = dayEvents.some(e => e.eventType === 'holiday');
             const totalOnLeave = dayEvents.filter(e => e.eventType === 'vacation' && e.status !== 'holiday').length;
             const totalComp = dayEvents.filter(e => e.eventType === 'compensatory').length;
+            const totalIncapacities = dayEvents.filter(e => e.eventType === 'incapacity').length;
             
             const dayPermissions = pEvents.filter(p => p.date === dateStr);
 
@@ -382,6 +384,10 @@ const Visualizer = {
                 ? `<span style="background:#0f766e; color:white; border-radius:10px; padding:2px 6px; font-size:0.65rem; font-weight:bold; margin-left:2px;" title="${totalComp} descansos compensatorios">${totalComp} <i class="fas fa-calendar-check" style="font-size:0.5rem;"></i></span>`
                 : '';
 
+            const incapacityBadge = (totalIncapacities > 0)
+                ? `<span style="background:#be123c; color:white; border-radius:10px; padding:2px 6px; font-size:0.65rem; font-weight:bold; margin-left:2px;" title="${totalIncapacities} incapacidades">${totalIncapacities} <i class="fas fa-notes-medical" style="font-size:0.5rem;"></i></span>`
+                : '';
+
             html += `
                 <div class="calendar-day">
                     <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 4px;">
@@ -389,6 +395,7 @@ const Visualizer = {
                         <div style="display:flex;">
                             ${permBadge}
                             ${compBadge}
+                            ${incapacityBadge}
                             ${countBadge}
                         </div>
                     </div>
@@ -413,6 +420,10 @@ const Visualizer = {
                                 cssClass = 'status-offsite-meeting';
                                 displayText = `${e.colName} · ${e.schedule}`;
                                 inlineStyle = 'background-color: #ede9fe !important; color: #6d28d9 !important; font-weight: 600 !important; border-left: 4px solid #8b5cf6 !important; white-space: normal !important; line-height: 1.1 !important;';
+                            } else if (e.eventType === 'incapacity') {
+                                cssClass = 'status-incapacity';
+                                displayText = `${e.colName} · Incapacidad`;
+                                inlineStyle = 'background-color: #ffe4e6 !important; color: #be123c !important; font-weight: 600 !important; border-left: 4px solid #e11d48 !important; white-space: normal !important; line-height: 1.1 !important;';
                             } else if (!e.isWeekend) {
                                 let hue = colColorMap[e.colId];
                                 if (hue === undefined) {
@@ -906,6 +917,43 @@ const Visualizer = {
                     <div class="comp-rest-actions">
                         <button type="button" class="btn-icon edit admin-only" onclick="UIManager.handleEditOffsiteMeeting('${m.id}')" title="Editar"><i class="fas fa-edit"></i></button>
                         <button type="button" class="btn-icon delete admin-only" onclick="UIManager.handleDeleteOffsiteMeeting('${m.id}')" title="Borrar"><i class="fas fa-trash"></i></button>
+                    </div>
+                </td>`;
+            body.appendChild(tr);
+        });
+    },
+
+    renderIncapacitiesView() {
+        const allColabs = StateManager.getCollaborators('all');
+        const select = document.getElementById('incapacity-col-select');
+        if (select) {
+            select.innerHTML = '<option value="">Selecciona Colaborador...</option>' +
+                allColabs.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
+        }
+        this.renderIncapacitiesTable();
+    },
+
+    renderIncapacitiesTable() {
+        const body = document.getElementById('incapacities-table-body');
+        if (!body) return;
+        const incapacities = StateManager.getIncapacities();
+        body.innerHTML = '';
+        if (incapacities.length === 0) {
+            body.innerHTML = '<tr><td colspan="5" style="text-align:center; padding:30px; opacity:0.6;">Sin incapacidades registradas.</td></tr>';
+            return;
+        }
+        incapacities.forEach(i => {
+            const col = StateManager.getCollaboratorById(i.collaboratorid);
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td><div class="comp-rest-person">${col ? col.name : 'Desconocido'}</div></td>
+                <td class="comp-rest-date">${UIManager.formatDate(i.start_date)}</td>
+                <td class="comp-rest-date">${UIManager.formatDate(i.end_date)}</td>
+                <td><div class="comp-rest-reason">${i.notes || 'Día completo'}</div></td>
+                <td>
+                    <div class="comp-rest-actions">
+                        <button type="button" class="btn-icon edit admin-only" onclick="UIManager.handleEditIncapacity('${i.id}')" title="Editar"><i class="fas fa-edit"></i></button>
+                        <button type="button" class="btn-icon delete admin-only" onclick="UIManager.handleDeleteIncapacity('${i.id}')" title="Borrar"><i class="fas fa-trash"></i></button>
                     </div>
                 </td>`;
             body.appendChild(tr);
