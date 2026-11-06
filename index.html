@@ -65,6 +65,10 @@
                     <i class="fas fa-notes-medical"></i>
                     <span>Incapacidades</span>
                 </a>
+                <a href="#" class="menu-item" id="nav-authorized-outings">
+                    <i class="fas fa-door-open"></i>
+                    <span>Salidas autorizadas</span>
+                </a>
 
                 <div class="menu-divider admin-only"></div>
                 <div class="menu-label admin-only">Sistema</div>
@@ -250,6 +254,57 @@
                                 <table class="data-table comp-rests-table" style="font-size:0.85rem;">
                                     <thead><tr><th>Colaborador</th><th>Inicio</th><th>Término</th><th>Notas</th><th>Acción</th></tr></thead>
                                     <tbody id="incapacities-table-body"></tbody>
+                                </table>
+                            </div></div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- 10. SALIDAS AUTORIZADAS -->
+                <section id="view-authorized-outings" class="app-view" style="display: none;">
+                    <div class="view-header">
+                        <div>
+                            <h1>Salidas autorizadas</h1>
+                            <p>Registra salidas autorizadas sin hora de regreso y sin reflejarlas en el calendario.</p>
+                        </div>
+                        <div class="comp-rest-legend">
+                            <span class="legend-chip" style="background:#eff6ff; color:#1d4ed8; border-color:#bfdbfe;"><i class="fas fa-door-open"></i> Salida autorizada</span>
+                        </div>
+                    </div>
+
+                    <div class="dashboard-grid perm-grid" style="display:grid; grid-template-columns:360px 1fr; gap:30px; margin-top:30px;">
+                        <div class="card" style="padding:25px;">
+                            <h3 style="margin-top:0; margin-bottom:20px;"><i class="fas fa-door-open" style="color:#2563eb;"></i> Nueva salida</h3>
+                            <form id="authorized-outing-form">
+                                <div class="form-group" style="margin-bottom:20px;">
+                                    <label>Colaborador</label>
+                                    <select id="outing-col-select" class="input-field" required><option value="">Selecciona...</option></select>
+                                </div>
+                                <div class="form-grid" style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+                                    <div class="form-group"><label>Fecha</label><input type="date" id="outing-date" class="input-field" required></div>
+                                    <div class="form-group"><label>Hora de salida</label><input type="time" id="outing-departure-time" class="input-field" required></div>
+                                </div>
+                                <div class="form-group" style="margin-top:16px;">
+                                    <label>Motivo</label>
+                                    <textarea id="outing-reason" class="input-field" placeholder="Ej: Campaña de vacunación de la empresa..." style="height:70px;" required></textarea>
+                                </div>
+                                <div class="form-group" style="margin-top:12px;">
+                                    <label>Notas (opcional)</label>
+                                    <textarea id="outing-notes" class="input-field" placeholder="Observaciones..." style="height:60px;"></textarea>
+                                </div>
+                                <div style="display:flex; gap:10px; margin-top:20px;">
+                                    <button type="submit" id="btn-outing-submit" class="btn btn-primary admin-only" style="flex:2;"><i class="fas fa-save"></i> Registrar salida</button>
+                                    <button type="button" id="btn-outing-cancel" class="btn btn-secondary admin-only" style="display:none; flex:1;">Cancelar</button>
+                                </div>
+                                <p class="guest-msg" style="display:none; color:var(--error-color); font-size:0.8rem; margin-top:10px; text-align:center;">Solo administradores pueden registrar salidas.</p>
+                            </form>
+                        </div>
+                        <div class="card">
+                            <div class="card-header" style="padding:20px 25px; border-bottom:1px solid var(--border-color);"><h3 style="margin:0;"><i class="fas fa-list"></i> Registro de salidas autorizadas</h3></div>
+                            <div class="card-body" style="padding:0;"><div class="table-responsive">
+                                <table class="data-table comp-rests-table" style="font-size:0.85rem;">
+                                    <thead><tr><th>Colaborador</th><th>Fecha</th><th>Motivo</th><th>Hora de salida</th><th>Notas</th><th>Acción</th></tr></thead>
+                                    <tbody id="authorized-outings-table-body"></tbody>
                                 </table>
                             </div></div>
                         </div>
@@ -855,12 +910,12 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="js/supabase-config.js"></script>
     <script src="js/xlsx.js"></script>
-    <script src="js/app-state.js?v=1.11"></script>
-    <script src="js/app-engine.js?v=1.11"></script>
-    <script src="js/app-auth.js?v=1.11"></script>
-    <script src="js/app-visualizer.js?v=1.11"></script>
-    <script src="js/app-ui.js?v=1.11"></script>
-    <script src="js/app-main.js?v=1.11"></script>
+    <script src="js/app-state.js?v=1.12"></script>
+    <script src="js/app-engine.js?v=1.12"></script>
+    <script src="js/app-auth.js?v=1.12"></script>
+    <script src="js/app-visualizer.js?v=1.12"></script>
+    <script src="js/app-ui.js?v=1.12"></script>
+    <script src="js/app-main.js?v=1.12"></script>
     <script>
         // Diagnóstico post-carga
         window.addEventListener('load', () => {

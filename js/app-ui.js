@@ -35,6 +35,7 @@ const UIManager = {
             'nav-compensatory-rests': 'view-compensatory-rests',
             'nav-offsite-meetings': 'view-offsite-meetings',
             'nav-incapacities': 'view-incapacities',
+            'nav-authorized-outings': 'view-authorized-outings',
             'nav-config': 'view-config'
         };
 
@@ -123,6 +124,11 @@ const UIManager = {
             incapacityForm.onsubmit = (e) => this.handleIncapacitySubmit(e);
         }
 
+        const authorizedOutingForm = document.getElementById('authorized-outing-form');
+        if (authorizedOutingForm) {
+            authorizedOutingForm.onsubmit = (e) => this.handleAuthorizedOutingSubmit(e);
+        }
+
         ['meeting-start-time', 'meeting-end-time'].forEach(id => {
             const el = document.getElementById(id);
             if (el) el.oninput = () => Visualizer.updateOffsiteMeetingHoursPreview();
@@ -162,6 +168,11 @@ const UIManager = {
         const btnIncapacityCancel = document.getElementById('btn-incapacity-cancel');
         if (btnIncapacityCancel) {
             btnIncapacityCancel.onclick = () => this.handleCancelIncapacityEdit();
+        }
+
+        const btnOutingCancel = document.getElementById('btn-outing-cancel');
+        if (btnOutingCancel) {
+            btnOutingCancel.onclick = () => this.handleCancelAuthorizedOutingEdit();
         }
 
         const btnUpload = document.getElementById('btn-trigger-upload');
@@ -234,6 +245,9 @@ const UIManager = {
         if (navId === 'nav-incapacities' && typeof this.handleCancelIncapacityEdit === 'function') {
             this.handleCancelIncapacityEdit();
         }
+        if (navId === 'nav-authorized-outings' && typeof this.handleCancelAuthorizedOutingEdit === 'function') {
+            this.handleCancelAuthorizedOutingEdit();
+        }
 
         document.querySelectorAll('.app-view').forEach(v => v.style.display = 'none');
 
@@ -273,6 +287,7 @@ const UIManager = {
             case 'compensatory-rests': Visualizer.renderCompensatoryRestsView(); break;
             case 'offsite-meetings': Visualizer.renderOffsiteMeetingsView(); break;
             case 'incapacities': Visualizer.renderIncapacitiesView(); break;
+            case 'authorized-outings': Visualizer.renderAuthorizedOutingsView(); break;
             case 'config': Visualizer.renderUserManagement(); break;
         }
     },
@@ -722,6 +737,78 @@ const UIManager = {
             if (Visualizer.editingIncapacityId === id) this.handleCancelIncapacityEdit();
             Visualizer.renderIncapacitiesView();
             Visualizer.renderCalendar();
+        }
+    },
+
+    async handleAuthorizedOutingSubmit(e) {
+        e.preventDefault();
+        const btn = e.target.querySelector('button[type="submit"]');
+        const originalText = btn.innerHTML;
+        const collaboratorid = document.getElementById('outing-col-select').value;
+        const outingDate = document.getElementById('outing-date').value;
+        const departureTime = document.getElementById('outing-departure-time').value;
+        const reason = document.getElementById('outing-reason').value.trim();
+        const notes = document.getElementById('outing-notes').value.trim();
+
+        if (!collaboratorid || !outingDate || !departureTime || !reason) {
+            this.showToast('Completa colaborador, fecha, hora y motivo', 'error');
+            return;
+        }
+
+        try {
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Guardando...';
+            await StateManager.saveAuthorizedOuting({
+                id: Visualizer.editingAuthorizedOutingId,
+                collaboratorid,
+                outing_date: outingDate,
+                reason,
+                departure_time: departureTime,
+                notes
+            });
+            this.showToast(Visualizer.editingAuthorizedOutingId ? 'Salida actualizada' : 'Salida registrada', 'success');
+            this.handleCancelAuthorizedOutingEdit();
+            Visualizer.renderAuthorizedOutingsView();
+        } catch (err) {
+            this.showToast('Error: ' + err.message, 'error');
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = originalText;
+        }
+    },
+
+    handleEditAuthorizedOuting(id) {
+        const outing = StateManager.getAuthorizedOutingById(id);
+        if (!outing) return;
+        Visualizer.editingAuthorizedOutingId = id;
+        document.getElementById('outing-col-select').value = outing.collaboratorid;
+        document.getElementById('outing-date').value = outing.outing_date || '';
+        document.getElementById('outing-departure-time').value = outing.departure_time || '';
+        document.getElementById('outing-reason').value = outing.reason || '';
+        document.getElementById('outing-notes').value = outing.notes || '';
+        document.getElementById('btn-outing-submit').innerHTML = '<i class="fas fa-save"></i> Guardar Cambios';
+        document.getElementById('btn-outing-cancel').style.display = 'block';
+        const form = document.getElementById('authorized-outing-form');
+        if (form) form.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    },
+
+    handleCancelAuthorizedOutingEdit() {
+        Visualizer.editingAuthorizedOutingId = null;
+        const form = document.getElementById('authorized-outing-form');
+        if (form) form.reset();
+        const submit = document.getElementById('btn-outing-submit');
+        if (submit) submit.innerHTML = '<i class="fas fa-save"></i> Registrar salida';
+        const cancel = document.getElementById('btn-outing-cancel');
+        if (cancel) cancel.style.display = 'none';
+    },
+
+    async handleDeleteAuthorizedOuting(id) {
+        if (!AuthManager.checkPermission('admin')) return;
+        if (confirm('¿Eliminar este registro de salida autorizada?')) {
+            await StateManager.deleteAuthorizedOuting(id);
+            this.showToast('Salida eliminada', 'success');
+            if (Visualizer.editingAuthorizedOutingId === id) this.handleCancelAuthorizedOutingEdit();
+            Visualizer.renderAuthorizedOutingsView();
         }
     },
 

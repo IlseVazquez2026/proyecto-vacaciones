@@ -11,6 +11,7 @@ const Visualizer = {
     editingCompensatoryId: null,
     editingOffsiteMeetingId: null,
     editingIncapacityId: null,
+    editingAuthorizedOutingId: null,
     selectedColId: null,
 
     init() {
@@ -954,6 +955,44 @@ const Visualizer = {
                     <div class="comp-rest-actions">
                         <button type="button" class="btn-icon edit admin-only" onclick="UIManager.handleEditIncapacity('${i.id}')" title="Editar"><i class="fas fa-edit"></i></button>
                         <button type="button" class="btn-icon delete admin-only" onclick="UIManager.handleDeleteIncapacity('${i.id}')" title="Borrar"><i class="fas fa-trash"></i></button>
+                    </div>
+                </td>`;
+            body.appendChild(tr);
+        });
+    },
+
+    renderAuthorizedOutingsView() {
+        const allColabs = StateManager.getCollaborators('all');
+        const select = document.getElementById('outing-col-select');
+        if (select) {
+            select.innerHTML = '<option value="">Selecciona Colaborador...</option>' +
+                allColabs.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
+        }
+        this.renderAuthorizedOutingsTable();
+    },
+
+    renderAuthorizedOutingsTable() {
+        const body = document.getElementById('authorized-outings-table-body');
+        if (!body) return;
+        const outings = StateManager.getAuthorizedOutings();
+        body.innerHTML = '';
+        if (outings.length === 0) {
+            body.innerHTML = '<tr><td colspan="6" style="text-align:center; padding:30px; opacity:0.6;">Sin salidas autorizadas registradas.</td></tr>';
+            return;
+        }
+        outings.forEach(o => {
+            const col = StateManager.getCollaboratorById(o.collaboratorid);
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td><div class="comp-rest-person">${col ? col.name : 'Desconocido'}</div></td>
+                <td class="comp-rest-date">${UIManager.formatDate(o.outing_date)}</td>
+                <td><div class="comp-rest-reason">${o.reason || 'Sin motivo'}</div></td>
+                <td><span class="status-pill authorized-outing-time">${o.departure_time || '--:--'}</span></td>
+                <td><div class="comp-rest-reason">${o.notes || '--'}</div></td>
+                <td>
+                    <div class="comp-rest-actions">
+                        <button type="button" class="btn-icon edit admin-only" onclick="UIManager.handleEditAuthorizedOuting('${o.id}')" title="Editar"><i class="fas fa-edit"></i></button>
+                        <button type="button" class="btn-icon delete admin-only" onclick="UIManager.handleDeleteAuthorizedOuting('${o.id}')" title="Borrar"><i class="fas fa-trash"></i></button>
                     </div>
                 </td>`;
             body.appendChild(tr);

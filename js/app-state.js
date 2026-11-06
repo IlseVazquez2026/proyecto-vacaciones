@@ -12,6 +12,7 @@ const StateManager = {
         compensatoryrests: [],
         officemeetings: [],
         incapacities: [],
+        authorizedoutings: [],
         vacationrules: {
             pre2023: [
                 { years: 1, days: 6 }, { years: 2, days: 8 }, { years: 3, days: 10 }, { years: 4, days: 12 }, { years: 5, days: 14 },
@@ -62,7 +63,8 @@ const StateManager = {
                 syncTable('permissions', 'permissions'),
                 syncTable('compensatory_rest_days', 'compensatoryrests'),
                 syncTable('offsite_meetings', 'officemeetings'),
-                syncTable('incapacities', 'incapacities')
+                syncTable('incapacities', 'incapacities'),
+                syncTable('authorized_outings', 'authorizedoutings')
             ]);
 
             const restoreLocalBackup = async (storageKey, propertyName, tableName) => {
@@ -94,6 +96,7 @@ const StateManager = {
             await restoreLocalBackup('vacaciones_compensatory_backup', 'compensatoryrests', 'compensatory_rest_days');
             await restoreLocalBackup('vacaciones_offsite_meetings_backup', 'officemeetings', 'offsite_meetings');
             await restoreLocalBackup('vacaciones_incapacities_backup', 'incapacities', 'incapacities');
+            await restoreLocalBackup('vacaciones_authorized_outings_backup', 'authorizedoutings', 'authorized_outings');
 
             // Restaurar sesión de usuario (si existe localmente)
             const savedUser = localStorage.getItem('vacaciones_user_session');
@@ -611,6 +614,67 @@ const StateManager = {
         const filtered = current.filter(i => i.id !== id);
         localStorage.setItem('vacaciones_incapacities_backup', JSON.stringify(filtered));
         this.data.incapacities = filtered;
+        await this.init();
+    },
+
+    // --- AUTHORIZED OUTING METHODS ---
+    getAuthorizedOutings(collaboratorId = null) {
+        let list = this.data.authorizedoutings || [];
+        if (collaboratorId) list = list.filter(o => o.collaboratorid === collaboratorId);
+        return [...list].sort((a, b) => {
+            const dateA = new Date(`${a.outing_date || '1970-01-01'}T12:00:00`);
+            const dateB = new Date(`${b.outing_date || '1970-01-01'}T12:00:00`);
+            return dateB - dateA;
+        });
+    },
+
+    getAuthorizedOutingById(id) {
+        return (this.data.authorizedoutings || []).find(o => o.id === id);
+    },
+
+    async saveAuthorizedOuting(outing) {
+        const payload = {
+            ...outing,
+            id: outing.id || `outing-${Date.now()}`,
+            lastupdate: new Date().toISOString()
+        };
+        const sanitizedPayload = {
+            id: payload.id,
+            collaboratorid: payload.collaboratorid,
+            outing_date: payload.outing_date,
+            reason: payload.reason,
+            departure_time: payload.departure_time,
+            notes: payload.notes,
+            lastupdate: payload.lastupdate
+        };
+
+        try {
+            const { error } = await supabase.from('authorized_outings').upsert(sanitizedPayload);
+            if (error) throw error;
+        } catch (err) {
+            console.warn("StateManager: Guardando salida autorizada localmente debido a falta de tabla 'authorized_outings' en DB.", err);
+        }
+
+        const current = JSON.parse(localStorage.getItem('vacaciones_authorized_outings_backup') || '[]');
+        const index = current.findIndex(o => o.id === payload.id);
+        if (index > -1) current[index] = payload; else current.push(payload);
+        localStorage.setItem('vacaciones_authorized_outings_backup', JSON.stringify(current));
+        this.data.authorizedoutings = current;
+        await this.init();
+        return payload;
+    },
+
+    async deleteAuthorizedOuting(id) {
+        try {
+            const { error } = await supabase.from('authorized_outings').delete().eq('id', id);
+            if (error) throw error;
+        } catch (err) {
+            console.warn("StateManager: Error en nube, procediendo con borrado local de salida autorizada.", err);
+        }
+        const current = JSON.parse(localStorage.getItem('vacaciones_authorized_outings_backup') || '[]');
+        const filtered = current.filter(o => o.id !== id);
+        localStorage.setItem('vacaciones_authorized_outings_backup', JSON.stringify(filtered));
+        this.data.authorizedoutings = filtered;
         await this.init();
     },
 

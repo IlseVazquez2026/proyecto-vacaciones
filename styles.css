@@ -247,6 +247,7 @@ body {
 .calendar-event.status-offsite-meeting { background-color: #ede9fe; color: #6d28d9 !important; border-left: 4px solid #8b5cf6 !important; }
 .calendar-event.status-incapacity { background-color: #ffe4e6; color: #be123c !important; border-left: 4px solid #e11d48 !important; }
 .meeting-schedule-pill { background: #f5f3ff; color: #6d28d9; border: 1px solid #ddd6fe; white-space: nowrap; }
+.authorized-outing-time { background: #eff6ff; color: #1d4ed8; border: 1px solid #bfdbfe; white-space: nowrap; }
 
 /* History View */
 .history-col-header {
